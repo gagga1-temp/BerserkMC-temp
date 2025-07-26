@@ -78,7 +78,7 @@ void LaunchController::decideAccount()
         if (reply == QMessageBox::Yes)
         {
             // Open the account manager.
-            APPLICATION->ShowGlobalSettings(m_parentWidget, "accounts");
+            APPLICATION->ShowAccountsDialog(m_parentWidget);
         }
     }
 
