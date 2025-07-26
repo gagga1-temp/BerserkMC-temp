@@ -51,9 +51,18 @@ void LaunchController::decideAccount()
         return;
     }
 
-    // Find an account to use.
+    // Find a valid account to use.
     auto accounts = APPLICATION->accounts();
-    if (accounts->count() <= 0)
+    bool hasAValidAccount = false;
+    for (int i = 0; i < accounts.get()->count(); i++) {
+        auto currentAccount = accounts.get()->at(i);
+        if (currentAccount.isAccount && currentAccount.account != nullptr) {
+            hasAValidAccount = true;
+            break;
+        }
+    }
+
+    if (!hasAValidAccount)
     {
         // Tell the user they need to log in at least one account in order to play.
         auto reply = CustomMessageBox::selectable(
