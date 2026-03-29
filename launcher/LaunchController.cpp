@@ -51,16 +51,25 @@ void LaunchController::decideAccount()
         return;
     }
 
-    // Find an account to use.
+    // Find a valid account to use.
     auto accounts = APPLICATION->accounts();
-    if (accounts->count() <= 0)
+    bool hasAValidAccount = false;
+    for (int i = 0; i < accounts.get()->count(); i++) {
+        auto currentAccount = accounts.get()->at(i);
+        if (currentAccount.isAccount && currentAccount.account != nullptr) {
+            hasAValidAccount = true;
+            break;
+        }
+    }
+
+    if (!hasAValidAccount)
     {
         // Tell the user they need to log in at least one account in order to play.
         auto reply = CustomMessageBox::selectable(
             m_parentWidget,
             tr("No Accounts"),
-            tr("In order to play Minecraft, you must have at least one Mojang or Minecraft "
-               "account logged in."
+            tr("In order to play Minecraft, you must have at least one Minecraft account "
+               "logged in. "
                "Would you like to open the account manager to add an account now?"),
             QMessageBox::Information,
             QMessageBox::Yes | QMessageBox::No
@@ -69,7 +78,7 @@ void LaunchController::decideAccount()
         if (reply == QMessageBox::Yes)
         {
             // Open the account manager.
-            APPLICATION->ShowGlobalSettings(m_parentWidget, "accounts");
+            APPLICATION->ShowAccountsDialog(m_parentWidget);
         }
     }
 
