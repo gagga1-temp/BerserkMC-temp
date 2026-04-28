@@ -74,6 +74,11 @@ struct AccountData {
     MinecraftEntitlement minecraftEntitlement;
     Katabasis::Validity validity_ = Katabasis::Validity::None;
 
+    // Offline account fields (no Microsoft / Mojang auth)
+    bool isOffline = false;
+    QString offlineName;
+    QString offlineUuid;
+
     // runtime only information (not saved with the account)
     QString internalId;
     QString errorString;

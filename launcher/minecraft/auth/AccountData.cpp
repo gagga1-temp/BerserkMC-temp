@@ -245,6 +245,24 @@ bool AccountData::resumeStateFromV3(QJsonObject data) {
         return false;
     }
     auto typeS = typeV.toString();
+    if(typeS == "Offline") {
+        isOffline = true;
+        offlineName = data.value("offline_name").toString();
+        offlineUuid = data.value("offline_uuid").toString();
+        if(offlineName.isEmpty() || offlineUuid.isEmpty()) {
+            qWarning() << "Failed to parse offline account: missing name or uuid.";
+            return false;
+        }
+        // Mirror into minecraftProfile so existing UI/queries work.
+        minecraftProfile.id = offlineUuid;
+        minecraftProfile.name = offlineName;
+        minecraftProfile.validity = Katabasis::Validity::Certain;
+        minecraftEntitlement.ownsMinecraft = true;
+        minecraftEntitlement.canPlayMinecraft = true;
+        minecraftEntitlement.validity = Katabasis::Validity::Certain;
+        validity_ = Katabasis::Validity::Certain;
+        return true;
+    }
     if(typeS != "MSA") {
         qWarning() << "Failed to parse account data: type is not recognized.";
         return false;
@@ -271,6 +289,12 @@ bool AccountData::resumeStateFromV3(QJsonObject data) {
 
 QJsonObject AccountData::saveState() const {
     QJsonObject output;
+    if(isOffline) {
+        output["type"] = "Offline";
+        output["offline_name"] = offlineName;
+        output["offline_uuid"] = offlineUuid;
+        return output;
+    }
     output["type"] = "MSA";
     tokenToJSONV3(output, msaToken, "msa");
     tokenToJSONV3(output, userToken, "utoken");
@@ -284,22 +308,27 @@ QJsonObject AccountData::saveState() const {
 }
 
 QString AccountData::accessToken() const {
+    if(isOffline) return QString();
     return yggdrasilToken.token;
 }
 
 QString AccountData::profileId() const {
+    if(isOffline) return offlineUuid;
     return minecraftProfile.id;
 }
 
 QString AccountData::xid() const {
+    if(isOffline) return QStringLiteral("offline:") + offlineUuid;
     return xboxApiToken.extra["xid"].toString();
 }
 
 QString AccountData::profileName() const {
+    if(isOffline) return offlineName;
     return minecraftProfile.name;
 }
 
 QString AccountData::gamerTag() const {
+    if(isOffline) return offlineName;
     return xboxApiToken.extra["gtg"].toString();
 }
 

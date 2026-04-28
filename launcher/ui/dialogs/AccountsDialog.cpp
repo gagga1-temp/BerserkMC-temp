@@ -26,6 +26,8 @@
 #include <QMessageBox>
 #include <QClipboard>
 
+#include "ui/dialogs/OfflineNameDialog.h"
+
 constexpr auto selectionFlags = QItemSelectionModel::Clear | QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Current;
 
 AccountsDialog::AccountsDialog(QWidget *parent, const QString& internalId) : QDialog(parent), ui(new Ui::AccountsDialog)
@@ -86,6 +88,7 @@ AccountsDialog::AccountsDialog(QWidget *parent, const QString& internalId) : QDi
     connect(ui->refreshButton_Demo, &QPushButton::clicked, this, &AccountsDialog::onRefreshButtonClicked);
 
     connect(ui->getFreshCodeButton, &QPushButton::clicked, this, &AccountsDialog::onGetFreshCodeButtonClicked);
+    connect(ui->addOfflineButton, &QPushButton::clicked, this, &AccountsDialog::onAddOfflineButtonClicked);
 
     QItemSelectionModel *selectionModel = ui->accountListView->selectionModel();
     bool foundAccount = false;
@@ -518,6 +521,40 @@ void AccountsDialog::onGetFreshCodeButtonClicked(bool)
 {
     stopLogin();
     startLogin();
+}
+
+void AccountsDialog::onAddOfflineButtonClicked(bool)
+{
+    QString lastName = APPLICATION->settings()->get("LastOfflinePlayerName").toString();
+    if(lastName.isEmpty()) {
+        lastName = "Player";
+    }
+    OfflineNameDialog dialog(lastName, this);
+    if(dialog.exec() != OfflineNameDialog::Accepted) {
+        return;
+    }
+    QString name = dialog.textValue();
+    if(name.isEmpty()) {
+        return;
+    }
+    // Same constraints as Mojang: 3-16 chars, alphanumeric + underscore.
+    QRegExp validName("[a-zA-Z0-9_]{3,16}");
+    if(!validName.exactMatch(name)) {
+        QMessageBox::warning(
+            this,
+            tr("Invalid name"),
+            tr("Player name must be 3-16 characters long and contain only letters, digits, or underscores.")
+        );
+        return;
+    }
+    APPLICATION->settings()->set("LastOfflinePlayerName", name);
+
+    auto account = MinecraftAccount::createOffline(name);
+    QModelIndex index = m_accounts->addAccount(account);
+    ui->accountListView->selectionModel()->select(index, selectionFlags);
+    if(!m_accounts->defaultAccount()) {
+        m_accounts->setData(index, Qt::Checked, Qt::CheckStateRole);
+    }
 }
 
 void AccountsDialog::onQrButtonClicked(bool)

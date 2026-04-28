@@ -123,17 +123,17 @@ endif()
 
 ####################################### Branding #######################################
 
-set(Launcher_CommonName "MultiMC")
+set(Launcher_CommonName "BerserkLauncher")
 
-set(Launcher_Copyright "MultiMC Contributors")
-set(Launcher_Domain "multimc.org")
+set(Launcher_Copyright "BerserkLauncher Contributors / MultiMC Contributors (upstream)")
+set(Launcher_Domain "")
 set(Launcher_Name "${Launcher_CommonName}")
-set(Launcher_DisplayName "${Launcher_CommonName} 5")
-set(Launcher_UserAgent "${Launcher_CommonName}/5.0")
-set(Launcher_ConfigFile "multimc.cfg")
-set(Launcher_Git "https://github.com/MultiMC/Launcher")
+set(Launcher_DisplayName "${Launcher_CommonName} (offline-capable fork of MultiMC 5)")
+set(Launcher_UserAgent "${Launcher_CommonName}/0.1")
+set(Launcher_ConfigFile "berserklauncher.cfg")
+set(Launcher_Git "")
 
-set(Launcher_Branding_ICNS "${PROJECT_SOURCE_DIR}/branding/${Launcher_CommonName}.icns")
+set(Launcher_Branding_ICNS "${PROJECT_SOURCE_DIR}/branding/MultiMC.icns")
 set(Launcher_Branding_WindowsRC "${PROJECT_SOURCE_DIR}/branding/multimc.rc")
 set(Launcher_Branding_LogoQRC "${PROJECT_SOURCE_DIR}/branding/logo.qrc")
 

@@ -455,6 +455,22 @@
                 </property>
                </widget>
               </item>
+              <item row="5" column="0" colspan="3">
+               <widget class="QPushButton" name="addOfflineButton">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>Add Offline Account (no Microsoft login)</string>
+                </property>
+                <property name="toolTip">
+                 <string>Create a local account with just a player name. Lets you play offline and join servers that have online-mode disabled.</string>
+                </property>
+               </widget>
+              </item>
               <item row="2" column="1">
                <widget class="QToolButton" name="copyLinkButton">
                 <property name="sizePolicy">

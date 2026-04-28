@@ -72,6 +72,10 @@ public: /* construction */
 
     static MinecraftAccountPtr createBlankMSA();
 
+    //! Creates an offline (no Microsoft) account with the given player name.
+    //! UUID is derived from the player name (offline-mode UUID, same as vanilla servers compute).
+    static MinecraftAccountPtr createOffline(const QString& playerName);
+
     static MinecraftAccountPtr loadFromJsonV3(const QJsonObject &json);
 
     //! Saves a MinecraftAccount to a JSON object and returns it.
@@ -116,7 +120,12 @@ public: /* queries */
 
     bool isActive() const;
 
+    bool isOffline() const {
+        return data.isOffline;
+    }
+
     bool ownsMinecraft() const {
+        if(data.isOffline) return true;
         return data.minecraftEntitlement.ownsMinecraft;
     }
 
@@ -125,7 +134,8 @@ public: /* queries */
     }
 
     QString typeString() const {
-        return "msa";
+        // Vanilla launch args expect "mojang" / "msa" / "legacy" — "mojang" is accepted for offline.
+        return data.isOffline ? QStringLiteral("mojang") : QStringLiteral("msa");
     }
 
     QPixmap getFace() const;

@@ -23,6 +23,7 @@
 #include <QRegExp>
 #include <QStringList>
 #include <QJsonDocument>
+#include <QCryptographicHash>
 
 #include <QDebug>
 
@@ -54,6 +55,35 @@ MinecraftAccountPtr MinecraftAccount::createBlankMSA()
     return account;
 }
 
+MinecraftAccountPtr MinecraftAccount::createOffline(const QString& playerName)
+{
+    MinecraftAccountPtr account(new MinecraftAccount());
+    account->data.isOffline = true;
+    account->data.offlineName = playerName;
+
+    // Vanilla offline-mode UUID: java.util.UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes(UTF_8))
+    // -> MD5 hash, with version byte set to 3 and variant bits set per RFC 4122.
+    QByteArray hash = QCryptographicHash::hash(
+        ("OfflinePlayer:" + playerName).toUtf8(),
+        QCryptographicHash::Md5
+    );
+    hash[6] = (hash[6] & 0x0f) | 0x30; // version 3
+    hash[8] = (hash[8] & 0x3f) | 0x80; // variant RFC 4122
+    QUuid offlineUuid = QUuid::fromRfc4122(hash);
+    account->data.offlineUuid = offlineUuid.toString().remove('{').remove('}');
+
+    // Mirror into minecraftProfile so existing UI/queries work.
+    account->data.minecraftProfile.id = account->data.offlineUuid;
+    account->data.minecraftProfile.name = playerName;
+    account->data.minecraftProfile.validity = Katabasis::Validity::Certain;
+    account->data.minecraftEntitlement.ownsMinecraft = true;
+    account->data.minecraftEntitlement.canPlayMinecraft = true;
+    account->data.minecraftEntitlement.validity = Katabasis::Validity::Certain;
+    account->data.validity_ = Katabasis::Validity::Certain;
+    account->data.accountState = AccountState::Offline;
+    return account;
+}
+
 
 QJsonObject MinecraftAccount::saveToJson() const
 {
@@ -61,6 +91,7 @@ QJsonObject MinecraftAccount::saveToJson() const
 }
 
 AccountState MinecraftAccount::accountState() const {
+    if(data.isOffline) return AccountState::Offline;
     return data.accountState;
 }
 
@@ -143,6 +174,9 @@ QPixmap MinecraftAccount::getFace() const {
 
 shared_qobject_ptr<AccountTask> MinecraftAccount::loginMSA() {
     Q_ASSERT(m_currentTask.get() == nullptr);
+    if(data.isOffline) {
+        return nullptr;
+    }
 
     m_currentTask.reset(new MSAInteractive(&data));
     connect(m_currentTask.get(), SIGNAL(succeeded()), SLOT(authSucceeded()));
@@ -154,6 +188,9 @@ shared_qobject_ptr<AccountTask> MinecraftAccount::loginMSA() {
 shared_qobject_ptr<AccountTask> MinecraftAccount::refresh() {
     if(m_currentTask) {
         return m_currentTask;
+    }
+    if(data.isOffline) {
+        return nullptr;
     }
 
     m_currentTask.reset(new MSASilent(&data));
@@ -168,6 +205,9 @@ shared_qobject_ptr<AccountTask> MinecraftAccount::createMinecraftProfile(const Q
     if(m_currentTask) {
         return nullptr;
     }
+    if(data.isOffline) {
+        return nullptr;
+    }
 
     m_currentTask.reset(new MSACreateProfile(&data, profileName));
 
@@ -179,6 +219,9 @@ shared_qobject_ptr<AccountTask> MinecraftAccount::createMinecraftProfile(const Q
 
 shared_qobject_ptr<AccountTask> MinecraftAccount::setSkin(Skins::Model model, QByteArray texture, const QString& capeUUID) {
     if(m_currentTask) {
+        return nullptr;
+    }
+    if(data.isOffline) {
         return nullptr;
     }
 
@@ -241,6 +284,9 @@ bool MinecraftAccount::isActive() const {
 }
 
 bool MinecraftAccount::shouldRefresh() const {
+    if(data.isOffline) {
+        return false;
+    }
     /*
      * Never refresh accounts that are being used by the game, it breaks the game session.
      * Always refresh accounts that have not been refreshed yet during this session.
@@ -276,7 +322,12 @@ bool MinecraftAccount::shouldRefresh() const {
 
 void MinecraftAccount::fillSession(AuthSessionPtr session)
 {
-    if(ownsMinecraft() && !hasProfile()) {
+    if(data.isOffline) {
+        // Offline account: never online, no auth tokens, no Mojang profile checks.
+        session->wants_online = false;
+        session->status = AuthSession::PlayableOffline;
+    }
+    else if(ownsMinecraft() && !hasProfile()) {
         session->status = AuthSession::RequiresProfileSetup;
     }
     else {
