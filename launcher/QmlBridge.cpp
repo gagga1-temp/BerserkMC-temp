@@ -11,6 +11,7 @@
 #include "meta/Index.h"
 #include "meta/VersionList.h"
 #include "meta/Version.h"
+#include "minecraft/PackProfile.h"
 #include "DesktopServices.h"
 #include "settings/SettingsObject.h"
 #include "FileSystem.h"
@@ -451,17 +452,71 @@ bool QmlBridge::createVanillaInstance(const QString &name, const QString &versio
     task->setGroup(APPLICATION->settings()->get("LastUsedGroupForNewInstance").toString());
     task->setIcon("default");
 
-    // Wrap with the InstanceList so the new instance is registered, then run
-    // it modally so the user sees the download progress.
     unique_qobject_ptr<Task> wrapped(APPLICATION->instances()->wrapInstanceTask(task));
     ProgressDialog dlg(nullptr);
     int rc = dlg.execWithTask(wrapped.get());
-    if (rc == QDialog::Accepted) {
+    if (rc != QDialog::Accepted) {
+        emit notification("error", tr("Création annulée ou échouée."));
+        return false;
+    }
+
+    // Optional mod-loader install. Pick the latest version of the loader
+    // available in the meta index and pin it into the freshly created instance.
+    QString loaderUid;
+    QString loaderLabel = loader;
+    if      (loader == "Fabric")   loaderUid = "net.fabricmc.fabric-loader";
+    else if (loader == "Forge")    loaderUid = "net.minecraftforge";
+    else if (loader == "Quilt")    loaderUid = "org.quiltmc.quilt-loader";
+    else if (loader == "NeoForge") loaderUid = "net.neoforged";
+
+    if (loaderUid.isEmpty() || loader == "Aucun") {
         emit notification("ok", tr("Instance « %1 » créée.").arg(name));
         return true;
     }
-    emit notification("error", tr("Création annulée ou échouée."));
-    return false;
+
+    // Find the new instance by name to attach the loader.
+    InstancePtr created;
+    for (int i = 0; i < APPLICATION->instances()->rowCount(QModelIndex()); ++i) {
+        auto inst = APPLICATION->instances()->at(i);
+        if (inst && inst->name() == name) { created = inst; break; }
+    }
+    if (!created) {
+        emit notification("error", tr("Instance créée mais introuvable pour le loader."));
+        return true;
+    }
+    auto mcInst = std::dynamic_pointer_cast<MinecraftInstance>(created);
+    if (!mcInst) {
+        emit notification("error", tr("Instance non-Minecraft, loader ignoré."));
+        return true;
+    }
+    auto profile = mcInst->getPackProfile();
+    if (!profile) {
+        emit notification("error", tr("PackProfile manquant — loader ignoré."));
+        return true;
+    }
+
+    auto loaderList = idx->get(loaderUid);
+    if (!loaderList) {
+        emit notification("error", tr("Liste %1 indisponible.").arg(loaderLabel));
+        return true;
+    }
+    if (!loaderList->isLoaded()) {
+        auto loadTask = loaderList->getLoadTask();
+        if (loadTask) {
+            ProgressDialog ld(nullptr);
+            ld.execWithTask(loadTask.get());
+        }
+    }
+    if (loaderList->count() == 0) {
+        emit notification("error", tr("Pas de versions de %1.").arg(loaderLabel));
+        return true;
+    }
+    // Latest = entry 0 in the meta version list.
+    auto latest = loaderList->at(0);
+    profile->setComponentVersion(loaderUid, latest->descriptor(), true);
+    emit notification("ok", tr("Instance « %1 » + %2 %3 installé.")
+                              .arg(name, loaderLabel, latest->descriptor()));
+    return true;
 }
 
 void QmlBridge::openFolder(const QString &kind)
