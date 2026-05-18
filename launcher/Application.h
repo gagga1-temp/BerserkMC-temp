@@ -141,6 +141,10 @@ public:
     InstanceWindow *showInstanceWindow(InstancePtr instance, QString page = QString());
     MainWindow *showMainWindow(bool minimized = false);
 
+    // Opens the new Qt Quick shell instead of the classic MainWindow. Triggered
+    // by `--qml-preview` until Phase 7-C makes QML the default entry point.
+    void showQmlMainWindow();
+
     void ShowAccountsDialog(class QWidget * parent);
 
     void updateIsRunning(bool running);
@@ -213,6 +217,10 @@ private:
     QString m_rootPath;
     Status m_status = Application::StartingUp;
 
+    // QML UI state
+    class QmlBridge*                m_qmlBridge   = nullptr;
+    class QQmlApplicationEngine*    m_qmlEngine   = nullptr;
+
 #if defined Q_OS_WIN32
     // used on Windows to attach the standard IO streams
     bool consoleAttached = false;
@@ -245,6 +253,7 @@ public:
     bool m_offline = false;
     QString m_offlineName;
     bool m_liveCheck = false;
+    bool m_useQmlUi = false;
     QUrl m_zipToImport;
     std::unique_ptr<QFile> logFile;
 };

@@ -7,6 +7,10 @@ project(application)
 include (UnitTest)
 
 set(CORE_SOURCES
+    # QML bridge — exposes Application state to the Qt Quick UI
+    QmlBridge.h
+    QmlBridge.cpp
+
     # LOGIC - Base classes and infrastructure
     BaseInstaller.h
     BaseInstaller.cpp

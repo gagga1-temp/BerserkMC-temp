@@ -1,5 +1,12 @@
 #include "Application.h"
 #include "BuildConfig.h"
+#include "QmlBridge.h"
+
+#include <QQmlApplicationEngine>
+#include <QQmlContext>
+#include <QQuickStyle>
+#include <QFontDatabase>
+#include <qqml.h>
 
 #include "ui/MainWindow.h"
 #include "ui/InstanceWindow.h"
@@ -257,6 +264,9 @@ Application::Application(int &argc, char **argv) : QApplication(argc, argv)
         parser.addOption("import");
         parser.addShortOpt("import", 'I');
         parser.addDocumentation("import", "Import instance from specified zip (local path or URL)");
+        // --qml-preview (experimental new UI)
+        parser.addSwitch("qml-preview");
+        parser.addDocumentation("qml-preview", "Open the experimental Qt Quick UI shell instead of the classic Widgets one");
 
         // parse the arguments
         try
@@ -300,6 +310,7 @@ Application::Application(int &argc, char **argv) : QApplication(argc, argv)
     }
     m_liveCheck = args["alive"].toBool();
     m_zipToImport = args["import"].toUrl();
+    m_useQmlUi = args["qml-preview"].toBool();
 
     QString origcwdPath = QDir::currentPath();
     QString binPath = applicationDirPath();
@@ -1066,7 +1077,12 @@ void Application::performMainStartupAction()
             return;
         }
     }
-    if(!m_mainWindow)
+    if(m_useQmlUi)
+    {
+        showQmlMainWindow();
+        qDebug() << "<> QML main window shown.";
+    }
+    else if(!m_mainWindow)
     {
         // normal main window
         showMainWindow(false);
@@ -1433,6 +1449,39 @@ void Application::ShowAccountsDialog(class QWidget* parent)
     dialog.exec();
 }
 
+
+void Application::showQmlMainWindow()
+{
+    if (m_qmlEngine) {
+        return; // already up
+    }
+
+    // Bridge exposes accounts/instances/launch to QML via the `App` global.
+    m_qmlBridge = new QmlBridge(this);
+    m_qmlBridge->connectModels();
+
+    // Bundled fonts: load them up front so QML can refer to them by family.
+    QFontDatabase::addApplicationFont(":/qml/fonts/DMSans.ttf");
+    QFontDatabase::addApplicationFont(":/qml/fonts/Caveat-Bold.ttf");
+    QFontDatabase::addApplicationFont(":/qml/fonts/VT323-Regular.ttf");
+
+    QQuickStyle::setStyle("Basic");
+
+    // Theme singleton (manually registered so we don't depend on qmldir module
+    // path resolution from a qrc-only deployment).
+    qmlRegisterSingletonType(QUrl(QStringLiteral("qrc:/qml/Theme.qml")),
+                             "BerserkMC.Ui", 1, 0, "Theme");
+
+    m_qmlEngine = new QQmlApplicationEngine(this);
+    m_qmlEngine->rootContext()->setContextProperty("App", m_qmlBridge);
+    m_qmlEngine->load(QUrl(QStringLiteral("qrc:/qml/Main.qml")));
+
+    if (m_qmlEngine->rootObjects().isEmpty()) {
+        qCritical() << "QML root failed to load — see warnings above.";
+    } else {
+        m_openWindows++;
+    }
+}
 
 MainWindow* Application::showMainWindow(bool minimized)
 {

@@ -21,18 +21,63 @@ Rectangle {
     signal newInstanceRequested()
     signal foldersRequested()
 
-    // ===== Mock instance data =====
-    ListModel {
-        id: instancesModel
-        ListElement { name: "1.14.4 Vanilla"; sub: "il y a 2h"; iconSrc: "qrc:/icons/multimc/256x256/minecraft.png";          mc: "Minecraft 1.14.4 · Vanilla"; playtime: "14h 23m"; mods: 0 }
-        ListElement { name: "1.20.1 Fabric";  sub: "hier";      iconSrc: "qrc:/icons/multimc/128x128/instances/enderpearl.png"; mc: "Minecraft 1.20.1 · Fabric";  playtime: "3h 12m";  mods: 28 }
-        ListElement { name: "Modpack Tech";   sub: "il y a 5j"; iconSrc: "qrc:/icons/multimc/128x128/instances/flame.png";    mc: "Minecraft 1.19.2 · Forge";   playtime: "27h 41m"; mods: 142 }
+    // App.instances is a QVariantList of dicts from QmlBridge. We mirror its
+    // shape into a ListModel so the existing delegates (which use model.xxx)
+    // keep working.
+    ListModel { id: instancesModel }
+
+    function relativeAge(epoch) {
+        if (!epoch) return ""
+        var diff = (Date.now() / 1000) - (epoch / 1000)
+        if (diff < 0)             return ""
+        if (diff < 60)            return qsTr("à l'instant")
+        if (diff < 3600)          return qsTr("il y a %1 min").arg(Math.floor(diff / 60))
+        if (diff < 86400)         return qsTr("il y a %1 h").arg(Math.floor(diff / 3600))
+        if (diff < 86400 * 30)    return qsTr("il y a %1 j").arg(Math.floor(diff / 86400))
+        if (diff < 86400 * 365)   return qsTr("il y a %1 mois").arg(Math.floor(diff / 86400 / 30))
+        return qsTr("il y a %1 ans").arg(Math.floor(diff / 86400 / 365))
+    }
+
+    function formatPlaytime(seconds) {
+        if (!seconds) return "—"
+        var h = Math.floor(seconds / 3600)
+        var m = Math.floor((seconds % 3600) / 60)
+        if (h === 0) return m + " m"
+        return h + " h " + m + " m"
+    }
+
+    function rebuildInstancesModel() {
+        instancesModel.clear()
+        if (typeof App === "undefined") return
+        var list = App.instances
+        for (var i = 0; i < list.length; ++i) {
+            var src = list[i]
+            instancesModel.append({
+                id_:       src.id || "",
+                name:      src.name || "(sans nom)",
+                sub:       relativeAge(src.lastPlayed),
+                iconSrc:   "qrc:/icons/multimc/256x256/minecraft.png",
+                mc:        src.mcVersion || "",
+                playtime:  formatPlaytime(src.totalPlayed),
+                mods:      0
+            })
+        }
+    }
+
+    Component.onCompleted: rebuildInstancesModel()
+    Connections {
+        target: typeof App !== "undefined" ? App : null
+        function onInstancesChanged() { page.rebuildInstancesModel() }
     }
 
     property int selectedIndex: 0
     function selectedInstance() {
         if (selectedIndex < 0 || selectedIndex >= instancesModel.count) return null;
         return instancesModel.get(selectedIndex);
+    }
+    function selectedInstanceId() {
+        var inst = selectedInstance();
+        return inst ? inst.id_ : "";
     }
 
     ColumnLayout {
@@ -183,8 +228,14 @@ Rectangle {
                              iconSource: inst.iconSrc,
                              playtime: inst.playtime, mods: inst.mods };
                 }
-                onPlay: console.log("play", instance.name)
-                onPlayOffline: console.log("play offline", instance.name)
+                onPlay: {
+                    var id = page.selectedInstanceId()
+                    if (id && typeof App !== "undefined") App.launchInstance(id, false)
+                }
+                onPlayOffline: {
+                    var id = page.selectedInstanceId()
+                    if (id && typeof App !== "undefined") App.launchInstance(id, true)
+                }
             }
         }
     }

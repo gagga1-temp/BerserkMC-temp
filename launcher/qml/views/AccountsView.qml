@@ -16,25 +16,55 @@ Rectangle {
 
     signal back()
 
-    // ===== Mock data — Phase 7 swaps in the C++ AccountList model =====
-    ListModel {
-        id: accounts
-        ListElement { name: "Karim_";       initial: "K"; kind: "Offline";    isDefault: true  }
-        ListElement { name: "SteveBuilder"; initial: "S"; kind: "Offline";    isDefault: false }
-        ListElement { name: "Notch4Ever";   initial: "N"; kind: "Microsoft";  isDefault: false }
+    // Mirror App.accounts (QVariantList) into a ListModel for the delegates.
+    ListModel { id: accounts }
+
+    function rebuildAccountsModel() {
+        accounts.clear()
+        if (typeof App === "undefined") return
+        var list = App.accounts
+        for (var i = 0; i < list.length; ++i) {
+            var src = list[i]
+            var initial = (src.displayName || "?").charAt(0).toUpperCase()
+            accounts.append({
+                internalId: src.internalId || "",
+                name:       src.displayName || "(sans nom)",
+                initial:    initial,
+                kind:       src.kind || "Offline",
+                isDefault:  src.isDefault === true
+            })
+        }
+        if (page.selectedIndex >= accounts.count) page.selectedIndex = Math.max(0, accounts.count - 1)
     }
+
+    Component.onCompleted: rebuildAccountsModel()
+    Connections {
+        target: typeof App !== "undefined" ? App : null
+        function onAccountsChanged() { page.rebuildAccountsModel() }
+    }
+
     property int selectedIndex: 0
-    function current() { return accounts.get(selectedIndex) }
+    function current() { return accounts.count > 0 ? accounts.get(selectedIndex) : null }
+    function currentId() { return current() ? current().internalId : "" }
 
     function makeDefault(i) {
-        for (var k = 0; k < accounts.count; ++k)
-            accounts.setProperty(k, "isDefault", k === i)
+        if (i < 0 || i >= accounts.count) return
+        var id = accounts.get(i).internalId
+        if (typeof App !== "undefined") App.setDefaultAccount(id)
     }
     function remove(i) {
-        if (accounts.count === 0) return
-        accounts.remove(i)
-        if (selectedIndex >= accounts.count) selectedIndex = accounts.count - 1
+        if (i < 0 || i >= accounts.count) return
+        var id = accounts.get(i).internalId
+        if (typeof App !== "undefined") App.removeAccount(id)
     }
+
+    // Hook the "Add offline" button at the bottom of the list.
+    function promptOfflineAccount() {
+        // Phase 7-B will add a proper inline form. For now we use a tiny prompt
+        // by jumping back to Welcome via the parent stack — handled outside.
+        page.addOfflineRequested()
+    }
+    signal addOfflineRequested()
 
     ColumnLayout {
         anchors.fill: parent
@@ -223,7 +253,7 @@ Rectangle {
                         variant: "primary"
                         iconName: "user"
                         text: qsTr("Ajouter compte hors-ligne")
-                        onClicked: console.log("add offline (TODO open small dialog)")
+                        onClicked: page.promptOfflineAccount()
                     }
                     IconButton {
                         Layout.fillWidth: true

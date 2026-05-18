@@ -23,11 +23,11 @@ ApplicationWindow {
     flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowSystemMenuHint
           | Qt.WindowMinMaxButtonsHint | Qt.WindowCloseButtonHint
 
-    // Mock "first launch" state. Phase 7 replaces with the real check against
-    // the cpp AccountList (no accounts -> show welcome).
-    property bool hasAccount: false
-    property string playerName: "Player"
-    property string accountKind: "Offline"
+    // Bridge-backed state. `App` is set as a context property from
+    // Application::showQmlMainWindow().
+    readonly property bool   hasAccount:  typeof App !== "undefined" && App.hasAccount
+    readonly property string playerName:  typeof App !== "undefined" && App.defaultPlayer.length ? App.defaultPlayer : "Player"
+    readonly property string accountKind: typeof App !== "undefined" && App.defaultKind.length ? App.defaultKind : "Offline"
 
     // The titlebar's subtitle reflects the current view for orientation.
     property string currentSection: "QML PREVIEW"
@@ -53,6 +53,17 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
             initialItem: root.hasAccount ? libraryComp : welcomeComp
+
+            // React when the bridge's first account arrives — replace Welcome
+            // with Library at runtime.
+            Connections {
+                target: typeof App !== "undefined" ? App : null
+                function onAccountsChanged() {
+                    if (root.hasAccount && stack.currentItem && stack.currentItem.toString().indexOf("Welcome") >= 0) {
+                        stack.replace(libraryComp)
+                    }
+                }
+            }
 
             // Push (forward) — new view slides in from the right
             pushEnter: Transition {
@@ -93,20 +104,15 @@ ApplicationWindow {
         id: welcomeComp
         WelcomeView {
             onOfflineAccountCreated: function(name) {
-                console.log("offline account created:", name)
-                root.playerName = name
-                root.accountKind = "Offline"
-                root.hasAccount = true
-                stack.replace(libraryComp)
+                if (typeof App !== "undefined")
+                    App.createOfflineAccount(name)
+                // StackView swap is driven by App.accountsChanged above so we
+                // don't double-navigate.
             }
             onMicrosoftLoginRequested: {
-                console.log("ms login requested")
-                // Phase 7 will route to the real AccountsDialog / MSA login flow.
-                // For now: pretend it succeeded so we can preview the flow.
-                root.playerName = "MSPlayer"
-                root.accountKind = "Microsoft"
-                root.hasAccount = true
-                stack.replace(libraryComp)
+                // Microsoft auth flow still routes through the existing cpp
+                // AccountsDialog for now (Phase 7-B wires the QML version).
+                console.log("ms login requested — Phase 7-B")
             }
         }
     }
