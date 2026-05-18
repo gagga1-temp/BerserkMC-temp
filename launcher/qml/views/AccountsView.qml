@@ -58,13 +58,136 @@ Rectangle {
         if (typeof App !== "undefined") App.removeAccount(id)
     }
 
-    // Hook the "Add offline" button at the bottom of the list.
     function promptOfflineAccount() {
-        // Phase 7-B will add a proper inline form. For now we use a tiny prompt
-        // by jumping back to Welcome via the parent stack — handled outside.
-        page.addOfflineRequested()
+        addOfflinePopup.nameInput.text = ""
+        addOfflinePopup.open()
     }
-    signal addOfflineRequested()
+
+    // ===== Modal popup: create offline account =====
+    Popup {
+        id: addOfflinePopup
+        property alias nameInput: nameField
+        modal: true
+        focus: true
+        anchors.centerIn: Overlay.overlay
+        implicitWidth: 420
+        implicitHeight: 280
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
+
+        background: Rectangle {
+            color: Theme.bgElevated
+            radius: Theme.radiusLg
+            border.color: Theme.borderSubtle
+            border.width: 1
+        }
+
+        // Dim the rest of the window
+        Overlay.modal: Rectangle {
+            color: Qt.rgba(0, 0, 0, 0.45)
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 14
+
+            Column {
+                Layout.fillWidth: true
+                spacing: 4
+                Text {
+                    text: qsTr("Ajouter un compte hors-ligne")
+                    color: Theme.textPrimary
+                    font.family: Theme.fontBody
+                    font.pointSize: 14
+                    font.weight: Font.Bold
+                }
+                Text {
+                    text: qsTr("Choisis un pseudo. Pas besoin de compte Microsoft.")
+                    color: Theme.textDim
+                    font.family: Theme.fontBody
+                    font.pointSize: 10
+                    wrapMode: Text.WordWrap
+                    width: parent.width
+                }
+            }
+
+            Column {
+                Layout.fillWidth: true
+                spacing: 6
+
+                Text {
+                    text: qsTr("PSEUDO EN JEU")
+                    color: Theme.textDim
+                    font.family: Theme.fontBody
+                    font.pointSize: 9
+                    font.letterSpacing: 1
+                    font.weight: Font.DemiBold
+                }
+                Rectangle {
+                    width: parent.width
+                    implicitHeight: 42
+                    radius: Theme.radiusMd
+                    color: Theme.bgInput
+                    border.color: nameField.activeFocus ? Theme.accentRing : Theme.borderSubtle
+                    border.width: 1
+                    Behavior on border.color { ColorAnimation { duration: Theme.durFast } }
+
+                    TextField {
+                        id: nameField
+                        anchors.fill: parent
+                        anchors.leftMargin: 14
+                        anchors.rightMargin: 14
+                        placeholderText: qsTr("Karim_")
+                        placeholderTextColor: Theme.textDim
+                        color: Theme.textPrimary
+                        font.family: Theme.fontBody
+                        font.pointSize: 13
+                        maximumLength: 16
+                        background: null
+                        verticalAlignment: TextInput.AlignVCenter
+                        validator: RegExpValidator { regExp: /^[a-zA-Z0-9_]{0,16}$/ }
+                        onAccepted: confirmBtn.tryCreate()
+                    }
+                }
+                Text {
+                    text: nameField.text.length === 0
+                        ? qsTr("3 à 16 caractères — lettres, chiffres, underscore")
+                        : (nameField.text.length < 3
+                            ? qsTr("Encore %1 caractère(s)…").arg(3 - nameField.text.length)
+                            : qsTr("✓ Nom valide"))
+                    color: nameField.text.length >= 3 ? Theme.accentStrong : Theme.textDim
+                    font.family: Theme.fontBody
+                    font.pointSize: 10
+                    Behavior on color { ColorAnimation { duration: Theme.durFast } }
+                }
+            }
+
+            Item { Layout.fillHeight: true }
+
+            Row {
+                Layout.alignment: Qt.AlignRight
+                spacing: 8
+
+                IconButton {
+                    variant: "ghost"
+                    text: qsTr("Annuler")
+                    onClicked: addOfflinePopup.close()
+                }
+                IconButton {
+                    id: confirmBtn
+                    variant: "primary"
+                    iconName: "user"
+                    text: qsTr("Créer")
+                    enabled: nameField.text.length >= 3
+                    opacity: enabled ? 1 : 0.5
+                    function tryCreate() {
+                        if (nameField.text.length < 3) return
+                        if (typeof App !== "undefined") App.createOfflineAccount(nameField.text)
+                        addOfflinePopup.close()
+                    }
+                    onClicked: tryCreate()
+                }
+            }
+        }
+    }
 
     ColumnLayout {
         anchors.fill: parent

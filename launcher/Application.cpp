@@ -1,6 +1,7 @@
 #include "Application.h"
 #include "BuildConfig.h"
 #include "QmlBridge.h"
+#include "QmlIconProvider.h"
 
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -1473,6 +1474,9 @@ void Application::showQmlMainWindow()
                              "BerserkMC.Ui", 1, 0, "Theme");
 
     m_qmlEngine = new QQmlApplicationEngine(this);
+    // Image provider for instance / launcher icons:
+    //     Image { source: "image://mmcicon/<key>" }
+    m_qmlEngine->addImageProvider(QStringLiteral("mmcicon"), new QmlIconProvider);
     m_qmlEngine->rootContext()->setContextProperty("App", m_qmlBridge);
     m_qmlEngine->load(QUrl(QStringLiteral("qrc:/qml/Main.qml")));
 

@@ -46,6 +46,14 @@ Rectangle {
         return h + " h " + m + " m"
     }
 
+    // Route every instance icon through the cpp QmlIconProvider so we honour
+    // user-custom icons too. The provider falls back to the default Minecraft
+    // grass-block when the key is unknown.
+    function iconPathFor(key) {
+        var safe = (key && key.length) ? key : "default"
+        return "image://mmcicon/" + safe
+    }
+
     function rebuildInstancesModel() {
         instancesModel.clear()
         if (typeof App === "undefined") return
@@ -56,7 +64,7 @@ Rectangle {
                 id_:       src.id || "",
                 name:      src.name || "(sans nom)",
                 sub:       relativeAge(src.lastPlayed),
-                iconSrc:   "qrc:/icons/multimc/256x256/minecraft.png",
+                iconSrc:   iconPathFor(src.iconKey),
                 mc:        src.mcVersion || "",
                 playtime:  formatPlaytime(src.totalPlayed),
                 mods:      0

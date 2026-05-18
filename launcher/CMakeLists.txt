@@ -10,6 +10,8 @@ set(CORE_SOURCES
     # QML bridge — exposes Application state to the Qt Quick UI
     QmlBridge.h
     QmlBridge.cpp
+    QmlIconProvider.h
+    QmlIconProvider.cpp
 
     # LOGIC - Base classes and infrastructure
     BaseInstaller.h
