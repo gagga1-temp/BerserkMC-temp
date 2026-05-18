@@ -264,35 +264,14 @@ Rectangle {
         anchors.fill: parent
         spacing: 0
 
-        // ===== Local header with back button + section title =====
-        Rectangle {
+        PageHeader {
             Layout.fillWidth: true
-            implicitHeight: 48
-            color: "transparent"
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: 20
-                anchors.rightMargin: 20
-                spacing: 12
-
-                IconButton {
-                    variant: "ghost"
-                    dense: true
-                    iconName: "arrow-left"
-                    text: qsTr("Retour")
-                    onClicked: page.back()
-                }
-
-                Item { Layout.fillWidth: true }
-            }
-
-            // Divider line
-            Rectangle {
-                anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                height: 1
-                color: Theme.borderSubtle
-            }
+            iconName: "user"
+            title: qsTr("Comptes")
+            subtitle: accounts.count > 0
+                ? qsTr("%1 compte(s) — gère tes profils en jeu").arg(accounts.count)
+                : qsTr("Ajoute ton premier compte")
+            onBack: page.back()
         }
 
         // ===== Body split =====
@@ -505,22 +484,36 @@ Rectangle {
                     RowLayout {
                         Layout.leftMargin: 32
                         Layout.rightMargin: 32
-                        spacing: 18
+                        spacing: 22
 
-                        Rectangle {
-                            implicitWidth: 96; implicitHeight: 96
-                            radius: Theme.radiusLg
-                            color: Theme.bgElevated
-                            border.color: Theme.borderSubtle
-                            border.width: 1
-
-                            Text {
+                        // Avatar tile with accent halo
+                        Item {
+                            implicitWidth: 112; implicitHeight: 112
+                            Rectangle {
                                 anchors.centerIn: parent
-                                text: page.current() ? page.current().initial : ""
-                                color: Theme.accentStrong
-                                font.family: Theme.fontBody
-                                font.pointSize: 36
-                                font.weight: Font.Bold
+                                width: 132; height: 132
+                                radius: 66
+                                color: page.current() && page.current().kind === "Offline"
+                                    ? Theme.accentGlow2
+                                    : Qt.rgba(0.13, 0.45, 0.93, 0.14)
+                                opacity: 0.9
+                            }
+                            Rectangle {
+                                anchors.fill: parent
+                                radius: Theme.radiusLg
+                                color: Theme.bgElevated
+                                border.color: Theme.borderSubtle
+                                border.width: 1
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: page.current() ? page.current().initial : ""
+                                    color: page.current() && page.current().kind === "Offline"
+                                        ? Theme.accentStrong
+                                        : "#7ab1ff"
+                                    font.family: Theme.fontBody
+                                    font.pointSize: 42
+                                    font.weight: Font.Bold
+                                }
                             }
                         }
 

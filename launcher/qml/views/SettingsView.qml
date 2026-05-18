@@ -70,33 +70,12 @@ Rectangle {
         anchors.fill: parent
         spacing: 0
 
-        // ===== Header =====
-        Rectangle {
+        PageHeader {
             Layout.fillWidth: true
-            implicitHeight: 48
-            color: "transparent"
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: 20
-                anchors.rightMargin: 20
-                spacing: 12
-
-                IconButton {
-                    variant: "ghost"
-                    dense: true
-                    iconName: "arrow-left"
-                    text: qsTr("Retour")
-                    onClicked: page.back()
-                }
-            }
-            Rectangle {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                height: 1
-                color: Theme.borderSubtle
-            }
+            iconName: "gear"
+            title: qsTr("Réglages")
+            subtitle: qsTr("Java, apparence, comportement")
+            onBack: page.back()
         }
 
         // ===== Scrollable body =====
@@ -123,13 +102,18 @@ Rectangle {
                     Column {
                         Layout.fillWidth: true
                         spacing: 4
-                        Text {
-                            text: qsTr("JAVA")
-                            color: Theme.textPrimary
-                            font.family: Theme.fontBody
-                            font.pointSize: 12
-                            font.letterSpacing: 1
-                            font.weight: Font.Bold
+                        Row {
+                            spacing: 10
+                            Rectangle { width: 8; height: 8; radius: 4; color: Theme.accentStrong; anchors.verticalCenter: parent.verticalCenter }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: qsTr("JAVA")
+                                color: Theme.textPrimary
+                                font.family: Theme.fontBody
+                                font.pointSize: 12
+                                font.letterSpacing: 1.2
+                                font.weight: Font.Bold
+                            }
                         }
                         Text {
                             text: qsTr("Configure le runtime utilisé pour lancer Minecraft.")
@@ -287,7 +271,11 @@ Rectangle {
                     Column {
                         Layout.fillWidth: true
                         spacing: 4
-                        Text { text: qsTr("APPARENCE"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 12; font.letterSpacing: 1; font.weight: Font.Bold }
+                        Row {
+                            spacing: 10
+                            Rectangle { width: 8; height: 8; radius: 4; color: Theme.accentStrong; anchors.verticalCenter: parent.verticalCenter }
+                            Text { anchors.verticalCenter: parent.verticalCenter; text: qsTr("APPARENCE"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 12; font.letterSpacing: 1.2; font.weight: Font.Bold }
+                        }
                         Text { text: qsTr("Thème global et accent."); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                     }
 
@@ -368,7 +356,11 @@ Rectangle {
                     Column {
                         Layout.fillWidth: true
                         spacing: 4
-                        Text { text: qsTr("COMPORTEMENT"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 12; font.letterSpacing: 1; font.weight: Font.Bold }
+                        Row {
+                            spacing: 10
+                            Rectangle { width: 8; height: 8; radius: 4; color: Theme.accentStrong; anchors.verticalCenter: parent.verticalCenter }
+                            Text { anchors.verticalCenter: parent.verticalCenter; text: qsTr("COMPORTEMENT"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 12; font.letterSpacing: 1.2; font.weight: Font.Bold }
+                        }
                         Text { text: qsTr("Lancement et fenêtre du jeu."); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                     }
 
@@ -499,7 +491,11 @@ Rectangle {
                     Column {
                         Layout.fillWidth: true
                         spacing: 4
-                        Text { text: qsTr("À PROPOS"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 12; font.letterSpacing: 1; font.weight: Font.Bold }
+                        Row {
+                            spacing: 10
+                            Rectangle { width: 8; height: 8; radius: 4; color: Theme.accentStrong; anchors.verticalCenter: parent.verticalCenter }
+                            Text { anchors.verticalCenter: parent.verticalCenter; text: qsTr("À PROPOS"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 12; font.letterSpacing: 1.2; font.weight: Font.Bold }
+                        }
                         Text { text: qsTr("Infos build."); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                     }
 

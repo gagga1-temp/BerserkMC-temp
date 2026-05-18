@@ -130,31 +130,14 @@ Rectangle {
         anchors.fill: parent
         spacing: 0
 
-        // ===== Local header with back button =====
-        Rectangle {
+        PageHeader {
             Layout.fillWidth: true
-            implicitHeight: 48
-            color: "transparent"
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: 20
-                anchors.rightMargin: 20
-                spacing: 12
-
-                IconButton {
-                    variant: "ghost"
-                    dense: true
-                    iconName: "arrow-left"
-                    text: qsTr("Retour")
-                    onClicked: page.back()
-                }
-            }
-            Rectangle {
-                anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                height: 1
-                color: Theme.borderSubtle
-            }
+            iconName: "plus"
+            title: qsTr("Nouvelle instance")
+            subtitle: page.loadingVersions
+                ? qsTr("Chargement du manifest…")
+                : qsTr("%1 versions disponibles").arg(versions.count)
+            onBack: page.back()
         }
 
         // ===== Body =====
@@ -194,6 +177,18 @@ Rectangle {
                             border.color: index === page.tabIndex ? Theme.accentRing : "transparent"
                             border.width: 1
                             Behavior on color { ColorAnimation { duration: Theme.durFast } }
+
+                            // Accent stripe on the left edge when active.
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.leftMargin: 4
+                                width: 3
+                                height: parent.height - 16
+                                radius: 1.5
+                                color: Theme.accentStrong
+                                visible: index === page.tabIndex
+                            }
 
                             Row {
                                 anchors.left: parent.left

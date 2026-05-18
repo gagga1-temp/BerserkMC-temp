@@ -53,28 +53,42 @@ Rectangle {
     // Centered content stack
     ColumnLayout {
         anchors.centerIn: parent
-        width: 420
-        spacing: 12
+        width: 460
+        spacing: 14
 
-        Image {
-            id: logo
+        // Logo with a wider drop-shadow effect via two stacked images.
+        Item {
             Layout.alignment: Qt.AlignHCenter
-            source: "qrc:/logo.png"
-            sourceSize.width: 192
-            sourceSize.height: 192
-            width: 96
-            height: 96
-            fillMode: Image.PreserveAspectFit
-            smooth: true
+            implicitWidth: 128
+            implicitHeight: 128
 
-            // Subtle fade-up entrance
-            opacity: 0
-            transform: Translate { id: logoTrans; y: 12 }
-            Component.onCompleted: logoAnim.start()
-            ParallelAnimation {
-                id: logoAnim
-                NumberAnimation { target: logo; property: "opacity"; to: 1.0; duration: Theme.durSlow; easing.type: Easing.OutCubic }
-                NumberAnimation { target: logoTrans; property: "y"; to: 0; duration: Theme.durSlow; easing.type: Easing.OutCubic }
+            Image {
+                id: logoBlur
+                anchors.fill: parent
+                source: "qrc:/logo.png"
+                sourceSize.width: 256; sourceSize.height: 256
+                fillMode: Image.PreserveAspectFit
+                opacity: 0.35
+                scale: 1.18
+                smooth: true
+                layer.enabled: true
+                layer.effect: FastBlur { radius: 40 }
+            }
+            Image {
+                id: logo
+                anchors.fill: parent
+                source: "qrc:/logo.png"
+                sourceSize.width: 256; sourceSize.height: 256
+                fillMode: Image.PreserveAspectFit
+                smooth: true
+                opacity: 0
+                transform: Translate { id: logoTrans; y: 14 }
+                Component.onCompleted: logoAnim.start()
+                ParallelAnimation {
+                    id: logoAnim
+                    NumberAnimation { target: logo; property: "opacity"; to: 1.0; duration: Theme.durSlow; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: logoTrans; property: "y"; to: 0; duration: Theme.durSlow; easing.type: Easing.OutCubic }
+                }
             }
         }
 
@@ -84,8 +98,9 @@ Rectangle {
             text: qsTr("Bienvenue dans BerserkMC")
             color: Theme.textPrimary
             font.family: Theme.fontBody
-            font.pointSize: 22
+            font.pointSize: 24
             font.weight: Font.Bold
+            font.letterSpacing: -0.3
             opacity: 0
             transform: Translate { id: titleTrans; y: 12 }
             Component.onCompleted: titleAnim.start()
@@ -101,7 +116,7 @@ Rectangle {
             id: subtitle
             Layout.alignment: Qt.AlignHCenter
             Layout.fillWidth: true
-            text: qsTr("Crée un compte hors-ligne pour commencer. Tu pourras lancer Minecraft sans Microsoft et rejoindre les serveurs qui acceptent les comptes locaux.")
+            text: qsTr("Crée un compte hors-ligne pour commencer. Tu pourras lancer Minecraft sans Microsoft et rejoindre les serveurs en online-mode false.")
             color: Theme.textMuted
             font.family: Theme.fontBody
             font.pointSize: 11
@@ -112,7 +127,7 @@ Rectangle {
             NumberAnimation { id: subAnim; target: subtitle; property: "opacity"; to: 1.0; duration: Theme.durSlow; easing.type: Easing.OutCubic }
         }
 
-        Item { height: 12; Layout.fillWidth: true }
+        Item { height: 14; Layout.fillWidth: true }
 
         Text {
             text: qsTr("PSEUDO EN JEU")

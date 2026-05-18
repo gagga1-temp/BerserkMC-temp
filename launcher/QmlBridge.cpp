@@ -27,6 +27,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QMessageBox>
+#include <QStandardPaths>
 
 QmlBridge::QmlBridge(QObject *parent) : QObject(parent) {}
 
@@ -40,8 +41,54 @@ InstanceList* QmlBridge::instanceList() const
     return APPLICATION->instances().get();
 }
 
+static QString tryAutoDetectJavaPath()
+{
+    // Best-effort: search PATH first, then well-known Adoptium/Eclipse Temurin /
+    // Oracle / Microsoft / Azul layouts on Windows. Returns the first javaw.exe
+    // that looks real. Empty on failure.
+#ifdef Q_OS_WIN
+    QStringList candidates;
+    const QString jdkDirs[] = {
+        "C:/Program Files/Eclipse Adoptium",
+        "C:/Program Files/Eclipse Foundation",
+        "C:/Program Files/Java",
+        "C:/Program Files/Microsoft/jdk",
+        "C:/Program Files/Zulu",
+        "C:/Program Files/AdoptOpenJDK",
+        "C:/Program Files (x86)/Java"
+    };
+    for (const QString &root : jdkDirs) {
+        QDir d(root);
+        if (!d.exists()) continue;
+        for (const QString &child : d.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+            candidates << d.filePath(child + "/bin/javaw.exe");
+            candidates << d.filePath(child + "/jre/bin/javaw.exe");
+        }
+    }
+    // Hard fallback: PATH lookup via QStandardPaths
+    QString viaPath = QStandardPaths::findExecutable("javaw");
+    if (!viaPath.isEmpty()) candidates.prepend(viaPath);
+
+    for (const QString &p : candidates) {
+        if (QFileInfo::exists(p)) return p;
+    }
+#endif
+    return QString();
+}
+
 void QmlBridge::connectModels()
 {
+    // If the user has no JavaPath set, do a best-effort autodetect once and
+    // persist the result. The Settings page will pick it up on next open.
+    if (APPLICATION->settings()->get("JavaPath").toString().trimmed().isEmpty()) {
+        QString found = tryAutoDetectJavaPath();
+        if (!found.isEmpty()) {
+            APPLICATION->settings()->set("JavaPath", found);
+            emit notification("ok",
+                tr("Java détecté : %1").arg(QFileInfo(found).absoluteFilePath()));
+        }
+    }
+
     auto a = accountList();
     if (a) {
         connect(a, &QAbstractListModel::modelReset,  this, &QmlBridge::onAccountsChanged);

@@ -39,35 +39,47 @@ Rectangle {
         // ===== Hero =====
         Column {
             Layout.alignment: Qt.AlignHCenter
-            spacing: 6
+            spacing: 10
 
-            Rectangle {
-                width: 88
-                height: 88
-                radius: Theme.radiusLg
+            // Icon tile with a subtle accent backdrop for visual weight.
+            Item {
                 anchors.horizontalCenter: parent.horizontalCenter
-                color: Theme.bgElevated
-                border.color: Theme.borderSubtle
-                border.width: 1
+                implicitWidth: 112
+                implicitHeight: 112
 
+                // Soft halo behind the icon
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 132; height: 132
+                    radius: 66
+                    color: Theme.accentGlow2
+                    opacity: 0.9
+                }
+                Rectangle {
+                    anchors.fill: parent
+                    radius: Theme.radiusLg
+                    color: Theme.bgElevated
+                    border.color: Theme.borderSubtle
+                    border.width: 1
+                }
                 Image {
                     anchors.centerIn: parent
                     source: side.instance.iconSource || "qrc:/icons/multimc/256x256/minecraft.png"
-                    sourceSize.width: 128
-                    sourceSize.height: 128
-                    width: 64
-                    height: 64
+                    sourceSize.width: 200; sourceSize.height: 200
+                    width: 84; height: 84
                     fillMode: Image.PreserveAspectFit
                     smooth: true
                 }
             }
+
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: side.instance.name
                 color: Theme.textPrimary
                 font.family: Theme.fontBody
-                font.pointSize: 14
+                font.pointSize: 15
                 font.weight: Font.Bold
+                font.letterSpacing: -0.2
             }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -86,7 +98,7 @@ Rectangle {
             Rectangle {
                 id: playBtn
                 Layout.fillWidth: true
-                implicitHeight: 44
+                implicitHeight: 52
                 radius: Theme.radiusMd
                 color: playHover.containsMouse ? Theme.accent : Theme.accentSoft
                 border.color: Theme.accentRing
@@ -94,6 +106,17 @@ Rectangle {
                 Behavior on color { ColorAnimation { duration: Theme.durFast } }
                 scale: playHover.pressed ? 0.97 : 1
                 Behavior on scale { NumberAnimation { duration: Theme.durFast; easing.type: Easing.OutCubic } }
+                // Glow on hover
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: -2
+                    radius: parent.radius + 2
+                    color: "transparent"
+                    border.color: playHover.containsMouse ? Theme.accentGlow1 : "transparent"
+                    border.width: 4
+                    z: -1
+                    Behavior on border.color { ColorAnimation { duration: Theme.durFast } }
+                }
 
                 Row {
                     anchors.centerIn: parent
@@ -117,8 +140,8 @@ Rectangle {
                 }
             }
             Rectangle {
-                implicitWidth: 44
-                implicitHeight: 44
+                implicitWidth: 52
+                implicitHeight: 52
                 radius: Theme.radiusMd
                 color: offHover.containsMouse ? Theme.bgInputOff : Theme.bgElevated
                 border.color: Theme.borderSubtle
