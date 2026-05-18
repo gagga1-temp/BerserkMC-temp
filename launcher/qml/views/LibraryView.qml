@@ -13,6 +13,7 @@ Rectangle {
     id: page
     color: Theme.bgBase
 
+    readonly property string viewTitle: "BIBLIOTHÈQUE"
     property string playerName: "Player"
     property string accountKind: "Offline"
 

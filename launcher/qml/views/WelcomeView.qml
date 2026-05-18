@@ -14,6 +14,8 @@ Rectangle {
     id: page
     color: Theme.bgBase
 
+    readonly property string viewTitle: "BIENVENUE"
+
     signal offlineAccountCreated(string playerName)
     signal microsoftLoginRequested()
 

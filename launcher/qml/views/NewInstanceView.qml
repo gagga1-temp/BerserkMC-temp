@@ -15,6 +15,7 @@ Rectangle {
     id: page
     color: Theme.bgBase
 
+    readonly property string viewTitle: "NOUVELLE INSTANCE"
     signal back()
     signal created(string instanceName, string version, string loader)
 

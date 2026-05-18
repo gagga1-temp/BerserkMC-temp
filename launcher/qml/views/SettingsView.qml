@@ -13,6 +13,7 @@ Rectangle {
     id: page
     color: Theme.bgBase
 
+    readonly property string viewTitle: "RÉGLAGES"
     signal back()
 
     // ===== Local mock state (Phase 7 wires to QSettings) =====

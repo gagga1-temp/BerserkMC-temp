@@ -14,6 +14,7 @@ Rectangle {
     id: page
     color: Theme.bgBase
 
+    readonly property string viewTitle: "COMPTES"
     signal back()
 
     // Mirror App.accounts (QVariantList) into a ListModel for the delegates.

@@ -152,16 +152,14 @@ ApplicationWindow {
 
     onCurrentSectionChanged: titlebar.subtitle = currentSection
 
-    // Reflect current view in the titlebar subtitle.
+    // Each view exposes `viewTitle` so the titlebar always reflects the
+    // active screen without us hard-coding names here.
     Connections {
         target: stack
         function onCurrentItemChanged() {
-            if (stack.currentItem instanceof Item) {
-                if (stack.currentItem.toString().indexOf("Library") >= 0)
-                    root.currentSection = "BIBLIOTHÈQUE"
-                else if (stack.currentItem.toString().indexOf("Welcome") >= 0)
-                    root.currentSection = "BIENVENUE"
-            }
+            var item = stack.currentItem
+            if (item && item.viewTitle && item.viewTitle.length)
+                root.currentSection = item.viewTitle
         }
     }
 
