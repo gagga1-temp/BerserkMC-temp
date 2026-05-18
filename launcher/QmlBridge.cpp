@@ -6,7 +6,11 @@
 #include "minecraft/auth/MinecraftAccount.h"
 #include "InstanceList.h"
 #include "BaseInstance.h"
+#include "InstanceCreationTask.h"
 #include "minecraft/MinecraftInstance.h"
+#include "meta/Index.h"
+#include "meta/VersionList.h"
+#include "meta/Version.h"
 #include "DesktopServices.h"
 #include "settings/SettingsObject.h"
 #include "FileSystem.h"
@@ -14,6 +18,7 @@
 #include "ui/dialogs/ExportInstanceDialog.h"
 #include "ui/dialogs/CreateShortcutDialog.h"
 #include "ui/dialogs/CustomMessageBox.h"
+#include "ui/dialogs/ProgressDialog.h"
 
 #include <QAbstractListModel>
 #include <QDebug>
@@ -305,13 +310,68 @@ void QmlBridge::deleteInstance(const QString &instanceId)
 
 bool QmlBridge::createVanillaInstance(const QString &name, const QString &version, const QString &loader)
 {
-    // Phase 7-D placeholder — wiring the full InstanceCreationTask + loader
-    // install means re-implementing chunks of NewInstanceDialog. Surface a
-    // notification so QML at least confirms the action ran end-to-end.
-    Q_UNUSED(loader);
-    emit notification("info",
-        tr("Création de « %1 » (Minecraft %2) — pas encore branché au cpp.")
-            .arg(name, version));
+    Q_UNUSED(loader); // mod-loader install is a TODO; vanilla wires today.
+    if (name.trimmed().isEmpty() || version.trimmed().isEmpty()) {
+        emit notification("error", tr("Nom ou version manquant."));
+        return false;
+    }
+
+    // Resolve the BaseVersion via the metadata index. We have to wait for the
+    // net.minecraft VersionList to load before .getVersion() returns anything.
+    auto idx = APPLICATION->metadataIndex();
+    if (!idx) {
+        emit notification("error", tr("Index de versions indisponible."));
+        return false;
+    }
+    auto vList = idx->get("net.minecraft");
+    if (!vList) {
+        emit notification("error", tr("Liste des versions Minecraft introuvable."));
+        return false;
+    }
+
+    if (!vList->isLoaded()) {
+        // Trigger the load + retry once it lands. Toast immediately so the
+        // user knows something is happening.
+        emit notification("info", tr("Chargement de la liste des versions…"));
+        auto loadTask = vList->getLoadTask();
+        if (loadTask) {
+            QString capturedName = name;
+            QString capturedVersion = version;
+            QString capturedLoader = loader;
+            QObject::connect(loadTask.get(), &Task::succeeded, this,
+                [this, capturedName, capturedVersion, capturedLoader]() {
+                    createVanillaInstance(capturedName, capturedVersion, capturedLoader);
+                });
+            QObject::connect(loadTask.get(), &Task::failed, this,
+                [this](QString err) {
+                    emit notification("error", tr("Index versions: %1").arg(err));
+                });
+            loadTask->start();
+        }
+        return false;
+    }
+
+    auto baseVer = vList->getVersion(version);
+    if (!baseVer) {
+        emit notification("error", tr("Version %1 introuvable dans le manifest.").arg(version));
+        return false;
+    }
+
+    auto task = new InstanceCreationTask(baseVer);
+    task->setName(name);
+    task->setGroup(APPLICATION->settings()->get("LastUsedGroupForNewInstance").toString());
+    task->setIcon("default");
+
+    // Wrap with the InstanceList so the new instance is registered, then run
+    // it modally so the user sees the download progress.
+    unique_qobject_ptr<Task> wrapped(APPLICATION->instances()->wrapInstanceTask(task));
+    ProgressDialog dlg(nullptr);
+    int rc = dlg.execWithTask(wrapped.get());
+    if (rc == QDialog::Accepted) {
+        emit notification("ok", tr("Instance « %1 » créée.").arg(name));
+        return true;
+    }
+    emit notification("error", tr("Création annulée ou échouée."));
     return false;
 }
 
