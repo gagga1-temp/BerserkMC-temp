@@ -125,7 +125,13 @@ void LaunchController::login() {
         m_accountToUse->fillSession(m_session);
         switch(m_accountToUse->accountState()) {
             case AccountState::Offline: {
-                m_session->wants_online = false;
+                // For accounts with our local "Offline" type, the user may still have
+                // internet — they just don't have Microsoft auth tokens. Leave
+                // wants_online as the user set it (Launch button => true,
+                // Launch Offline => false), so asset downloads can run on first launch.
+                if(!m_accountToUse->isOffline()) {
+                    m_session->wants_online = false;
+                }
                 // NOTE: fallthrough is intentional
             }
             case AccountState::Online: {

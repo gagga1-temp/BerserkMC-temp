@@ -28,7 +28,7 @@
 IconList::IconList(const QStringList &builtinPaths, QString path, QObject *parent) : QAbstractListModel(parent)
 {
     QSet<QString> builtinNames;
-    m_logoIcon = QIcon(":/logo.svg");
+    m_logoIcon = QIcon(":/logo.png");
     builtinNames.insert("logo");
 
     // add builtin icons

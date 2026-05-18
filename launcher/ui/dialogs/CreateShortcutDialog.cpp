@@ -182,7 +182,7 @@ void CreateShortcutDialog::createShortcut()
             // save the launcher icon to a file so we can use it in the shortcut
             if (!QFileInfo::exists(QDir::currentPath() + "/icons/shortcut-icon.png"))
             {
-                QPixmap iconPixmap = QIcon(":/logo.svg").pixmap(64, 64);
+                QPixmap iconPixmap = QIcon(":/logo.png").pixmap(64, 64);
                 iconPixmap.save(QDir::currentPath() + "/icons/shortcut-icon.png");
             }
 
@@ -216,7 +216,7 @@ void CreateShortcutDialog::createShortcut()
     {
         if (!QFileInfo::exists(QDir::currentPath() + "/icons/shortcut-icon.ico"))
         {
-            QPixmap iconPixmap = QIcon(":/logo.svg").pixmap(64, 64);
+            QPixmap iconPixmap = QIcon(":/logo.png").pixmap(64, 64);
             iconPixmap.save(QDir::currentPath() + "/icons/shortcut-icon.ico");
         }
         

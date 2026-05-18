@@ -1,7 +1,18 @@
 cmake_minimum_required(VERSION 3.10)
 
-if(WIN32)
-    # In Qt 5.1+ we have our own main() function, don't autolink to qtmain on Windows
+# ccache speeds up repeated builds dramatically — pick it up if available and
+# wire it as the compiler launcher. No-op on systems that don't have it.
+find_program(CCACHE_EXECUTABLE ccache)
+if(CCACHE_EXECUTABLE)
+    message(STATUS "ccache found at ${CCACHE_EXECUTABLE} — enabling compiler launcher")
+    set(CMAKE_C_COMPILER_LAUNCHER   ${CCACHE_EXECUTABLE})
+    set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_EXECUTABLE})
+endif()
+
+# CMake 4.x removed support for CMP0020 OLD. The behavior we want (no auto-link
+# to qtmain on Windows because we provide our own main()) is achieved by
+# linking against Qt5::Core/Widgets directly without Qt5::WinMain.
+if(WIN32 AND POLICY CMP0020 AND CMAKE_VERSION VERSION_LESS "3.30")
     cmake_policy(SET CMP0020 OLD)
 endif()
 
@@ -110,6 +121,11 @@ find_package(Qt5Concurrent REQUIRED)
 find_package(Qt5Network REQUIRED)
 find_package(Qt5Test REQUIRED)
 find_package(Qt5Xml REQUIRED)
+find_package(Qt5Qml REQUIRED)
+find_package(Qt5Quick REQUIRED)
+find_package(Qt5QuickControls2 REQUIRED)
+find_package(Qt5QuickWidgets REQUIRED)
+find_package(Qt5Svg REQUIRED)
 
 # The Qt5 cmake files don't provide its install paths, so ask qmake.
 include(QMakeQuery)
@@ -123,14 +139,14 @@ endif()
 
 ####################################### Branding #######################################
 
-set(Launcher_CommonName "BerserkLauncher")
+set(Launcher_CommonName "BerserkMC")
 
-set(Launcher_Copyright "BerserkLauncher Contributors / MultiMC Contributors (upstream)")
+set(Launcher_Copyright "BerserkMC Contributors / MultiMC Contributors (upstream)")
 set(Launcher_Domain "")
 set(Launcher_Name "${Launcher_CommonName}")
-set(Launcher_DisplayName "${Launcher_CommonName} (offline-capable fork of MultiMC 5)")
+set(Launcher_DisplayName "${Launcher_CommonName}")
 set(Launcher_UserAgent "${Launcher_CommonName}/0.1")
-set(Launcher_ConfigFile "berserklauncher.cfg")
+set(Launcher_ConfigFile "berserkmc.cfg")
 set(Launcher_Git "")
 
 set(Launcher_Branding_ICNS "${PROJECT_SOURCE_DIR}/branding/MultiMC.icns")

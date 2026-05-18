@@ -323,8 +323,10 @@ bool MinecraftAccount::shouldRefresh() const {
 void MinecraftAccount::fillSession(AuthSessionPtr session)
 {
     if(data.isOffline) {
-        // Offline account: never online, no auth tokens, no Mojang profile checks.
-        session->wants_online = false;
+        // Offline account: no Mojang auth tokens, but the user may still have internet
+        // (so asset/library downloads should run). Keep session->wants_online as the
+        // caller set it — that drives the Update step's Net::Mode. Status stays Offline
+        // because we have no real Mojang session token to authenticate with.
         session->status = AuthSession::PlayableOffline;
     }
     else if(ownsMinecraft() && !hasProfile()) {

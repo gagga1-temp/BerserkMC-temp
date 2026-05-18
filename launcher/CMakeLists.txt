@@ -889,6 +889,13 @@ qt5_add_resources(LAUNCHER_RESOURCES
     ${Launcher_Branding_LogoQRC}
 )
 
+# QML resources kept out of the static lib so editing a .qml/.svg file only
+# triggers a relink of the small main executable instead of the ~30 MB
+# Launcher_logic static library.
+qt5_add_resources(LAUNCHER_QML_RESOURCES
+    qml/qml.qrc
+)
+
 ######## Windows resource files ########
 if(WIN32)
     set(LAUNCHER_RCS ${Launcher_Branding_WindowsRC})
@@ -914,6 +921,11 @@ target_link_libraries(Launcher_logic
     Qt5::Network
     Qt5::Concurrent
     Qt5::Gui
+    Qt5::Qml
+    Qt5::Quick
+    Qt5::QuickControls2
+    Qt5::QuickWidgets
+    Qt5::Svg
 )
 target_link_libraries(Launcher_logic
     Launcher_iconfix
@@ -923,7 +935,7 @@ target_link_libraries(Launcher_logic
     LocalPeer
 )
 
-add_executable(${Launcher_Name} MACOSX_BUNDLE WIN32 main.cpp ${LAUNCHER_RCS})
+add_executable(${Launcher_Name} MACOSX_BUNDLE WIN32 main.cpp ${LAUNCHER_RCS} ${LAUNCHER_QML_RESOURCES})
 target_link_libraries(${Launcher_Name} Launcher_logic)
 
 if(DEFINED Launcher_APP_BINARY_NAME)

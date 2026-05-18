@@ -914,16 +914,19 @@ shared_qobject_ptr<LaunchTask> MinecraftInstance::createLaunchTask(AuthSessionPt
         process->appendStep(step);
     }
 
-    // if we aren't in offline mode,.
-    if(session->status != AuthSession::PlayableOffline)
-    {
-        if(!session->demo) {
-            process->appendStep(new ClaimAccount(pptr, session));
-        }
-        process->appendStep(new Update(pptr, Net::Mode::Online));
+    // ClaimAccount talks to Mojang to lock the profile to this session — it requires
+    // a real Mojang session token, so only do it for fully online sessions.
+    if(session->status == AuthSession::PlayableOnline && !session->demo) {
+        process->appendStep(new ClaimAccount(pptr, session));
     }
-    else
-    {
+
+    // Asset/library downloads should follow the user's intent (the "Launch Offline"
+    // button sets wants_online=false). An offline-typed account on its first launch
+    // still needs Net::Mode::Online to populate the cache, even though the session
+    // status is PlayableOffline.
+    if(session->wants_online) {
+        process->appendStep(new Update(pptr, Net::Mode::Online));
+    } else {
         process->appendStep(new Update(pptr, Net::Mode::Offline));
     }
 

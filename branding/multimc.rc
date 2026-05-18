@@ -3,11 +3,11 @@
 #endif
 #include <windows.h>
 
-IDI_ICON1               ICON    DISCARDABLE     "MultiMC.ico"
+IDI_ICON1               ICON    DISCARDABLE     "BerserkMC.ico"
 1 RT_MANIFEST "MultiMC.manifest"
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION     1,0,0,0
+FILEVERSION     0,1,0,0
 FILEOS          VOS_NT_WINDOWS32
 FILETYPE        VFT_APP
 BEGIN
@@ -15,11 +15,11 @@ BEGIN
         BEGIN
                 BLOCK "000004b0"
                 BEGIN
-                        VALUE "CompanyName", "MultiMC Contributors"
-                        VALUE "FileDescription", "MultiMC Launcher"
-                        VALUE "FileVersion", "1.0.0.0"
-                        VALUE "ProductName", "MultiMC"
-                        VALUE "ProductVersion", "5"
+                        VALUE "CompanyName", "BerserkMC"
+                        VALUE "FileDescription", "BerserkMC Launcher"
+                        VALUE "FileVersion", "0.1.0.0"
+                        VALUE "ProductName", "BerserkMC"
+                        VALUE "ProductVersion", "0.1"
                 END
         END
         BLOCK "VarFileInfo"

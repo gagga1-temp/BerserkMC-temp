@@ -106,12 +106,11 @@ AboutDialog::AboutDialog(QWidget *parent) : QDialog(parent), ui(new Ui::AboutDia
         ui->channelLabel->setVisible(false);
 
     ui->redistributionText->setHtml(tr(
-"<p>We keep MultiMC open source because we think it's important to be able to see the source code for a project like this, and we do so using the Apache license.</p>\n"
-"<p>Part of the reason for using the Apache license is we don't want people using the &quot;MultiMC&quot; name when redistributing the project. "
-"This means people must take the time to go through the source code and remove all references to &quot;MultiMC&quot;, including but not limited to the project "
-"icon and the title of windows, (no <b>MultiMC-fork</b> in the title).</p>\n"
-"<p>The Apache license covers reasonable use for the name - a mention of the project's origins in the About dialog and the license is acceptable. "
-"However, it should be abundantly clear that the project is a fork <b>without</b> implying that you have our blessing.</p>"
+"<p>BerserkMC is a fork of <a href=\"https://github.com/MultiMC/Launcher\">MultiMC</a>, "
+"licensed under the Apache 2.0 license. The fork adds an optional offline account flow "
+"so the launcher can be used without a Microsoft login.</p>\n"
+"<p>This fork is unaffiliated with and unendorsed by the MultiMC project. The MultiMC "
+"name and logo are not used here per upstream's redistribution policy.</p>"
     ));
 
     QString urlText("<html><head/><body><p><a href=\"%1\">%1</a></p></body></html>");
