@@ -156,6 +156,10 @@ signals:
     void updateAllowedChanged(bool status);
     void globalSettingsAboutToOpen();
     void globalSettingsClosed();
+    // Emitted when a LaunchController finishes (success or failure). Used by
+    // QmlBridge to forward toasts to the QML UI.
+    void instanceLaunchSucceeded(const QString &instanceId);
+    void instanceLaunchFailed(const QString &instanceId, const QString &error);
 
 public slots:
     bool launch(

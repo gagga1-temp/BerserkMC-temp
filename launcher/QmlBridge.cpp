@@ -50,6 +50,16 @@ void QmlBridge::connectModels()
         connect(i, &QAbstractListModel::rowsRemoved, this, &QmlBridge::onInstancesChanged);
         connect(i, &QAbstractListModel::dataChanged, this, &QmlBridge::onInstancesChanged);
     }
+    // Pipe launch outcomes back to QML as toast notifications.
+    connect(APPLICATION, &Application::instanceLaunchSucceeded, this,
+            [this](const QString &id) {
+                emit notification("ok", tr("« %1 » terminé.").arg(id));
+            });
+    connect(APPLICATION, &Application::instanceLaunchFailed, this,
+            [this](const QString &id, const QString &err) {
+                emit notification("error",
+                    tr("Échec du lancement de « %1 » : %2").arg(id, err));
+            });
     rebuildAccounts();
     rebuildInstances();
 }

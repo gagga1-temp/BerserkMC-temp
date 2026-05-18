@@ -1393,6 +1393,7 @@ void Application::controllerSucceeded()
     if(!controller)
         return;
     auto id = controller->id();
+    emit instanceLaunchSucceeded(id);
     auto & extras = m_instanceExtras[id];
 
     // on success, do...
@@ -1416,11 +1417,11 @@ void Application::controllerSucceeded()
 
 void Application::controllerFailed(const QString& error)
 {
-    Q_UNUSED(error);
     auto controller = qobject_cast<LaunchController *>(QObject::sender());
     if(!controller)
         return;
     auto id = controller->id();
+    emit instanceLaunchFailed(id, error);
     auto & extras = m_instanceExtras[id];
 
     // on failure, do... nothing
