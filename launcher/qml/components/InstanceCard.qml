@@ -12,6 +12,7 @@ Rectangle {
     property string iconSource: "qrc:/icons/multimc/256x256/minecraft.png"
     property bool selected: false
     property bool addTile: false
+    property bool running: false
 
     signal clicked()
     signal doubleClicked()
@@ -55,6 +56,29 @@ Rectangle {
         border.width: 4
         visible: card.selected
         z: -1
+    }
+
+    // Running indicator — small pulsing accent dot in the top-right corner
+    Rectangle {
+        visible: card.running && !card.addTile
+        width: 14; height: 14; radius: 7
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.topMargin: 8
+        anchors.rightMargin: 8
+        color: Theme.accentStrong
+        z: 2
+        SequentialAnimation on opacity {
+            running: card.running
+            loops: Animation.Infinite
+            NumberAnimation { from: 1.0; to: 0.4; duration: 800; easing.type: Easing.InOutQuad }
+            NumberAnimation { from: 0.4; to: 1.0; duration: 800; easing.type: Easing.InOutQuad }
+        }
+        Rectangle {
+            anchors.centerIn: parent
+            width: 6; height: 6; radius: 3
+            color: "white"
+        }
     }
 
     // Icon area (top 65%)

@@ -10,8 +10,11 @@ import BerserkMC.Ui 1.0
 Rectangle {
     id: side
     property var instance: ({ name: "—", sub: "—", iconSource: "qrc:/icons/multimc/256x256/minecraft.png", playtime: "—", mods: 0 })
+    property string instanceId: ""
+    property bool   isRunning: false
     signal play()
     signal playOffline()
+    signal kill()
     signal openMods()
     signal openWorlds()
     signal openEdit()
@@ -100,10 +103,13 @@ Rectangle {
                 Layout.fillWidth: true
                 implicitHeight: 52
                 radius: Theme.radiusMd
-                color: playHover.containsMouse ? Theme.accent : Theme.accentSoft
-                border.color: Theme.accentRing
+                color: side.isRunning
+                    ? (playHover.containsMouse ? Theme.accentRed : Qt.rgba(1, 0.36, 0.36, 0.18))
+                    : (playHover.containsMouse ? Theme.accent : Theme.accentSoft)
+                border.color: side.isRunning ? Qt.rgba(1, 0.36, 0.36, 0.4) : Theme.accentRing
                 border.width: 1
-                Behavior on color { ColorAnimation { duration: Theme.durFast } }
+                Behavior on color        { ColorAnimation { duration: Theme.durFast } }
+                Behavior on border.color { ColorAnimation { duration: Theme.durFast } }
                 scale: playHover.pressed ? 0.97 : 1
                 Behavior on scale { NumberAnimation { duration: Theme.durFast; easing.type: Easing.OutCubic } }
                 // Glow on hover
@@ -112,7 +118,9 @@ Rectangle {
                     anchors.margins: -2
                     radius: parent.radius + 2
                     color: "transparent"
-                    border.color: playHover.containsMouse ? Theme.accentGlow1 : "transparent"
+                    border.color: playHover.containsMouse
+                        ? (side.isRunning ? Qt.rgba(1, 0.36, 0.36, 0.25) : Theme.accentGlow1)
+                        : "transparent"
                     border.width: 4
                     z: -1
                     Behavior on border.color { ColorAnimation { duration: Theme.durFast } }
@@ -121,10 +129,21 @@ Rectangle {
                 Row {
                     anchors.centerIn: parent
                     spacing: 8
-                    Icon { name: "play"; color: playHover.containsMouse ? "white" : Theme.accentStrong; size: 16; anchors.verticalCenter: parent.verticalCenter }
+                    Icon {
+                        name: side.isRunning ? "trash" : "play"
+                        color: {
+                            if (side.isRunning) return playHover.containsMouse ? "white" : "#ff8888"
+                            return playHover.containsMouse ? "white" : Theme.accentStrong
+                        }
+                        size: 16
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
                     Text {
-                        text: qsTr("Jouer")
-                        color: playHover.containsMouse ? "white" : Theme.accentStrong
+                        text: side.isRunning ? qsTr("Arrêter") : qsTr("Jouer")
+                        color: {
+                            if (side.isRunning) return playHover.containsMouse ? "white" : "#ff8888"
+                            return playHover.containsMouse ? "white" : Theme.accentStrong
+                        }
                         font.family: Theme.fontBody
                         font.pointSize: 11
                         font.weight: Font.Bold
@@ -136,7 +155,7 @@ Rectangle {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: side.play()
+                    onClicked: side.isRunning ? side.kill() : side.play()
                 }
             }
             Rectangle {

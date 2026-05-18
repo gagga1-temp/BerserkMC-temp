@@ -134,15 +134,21 @@ void QmlBridge::connectModels()
         connect(i, &QAbstractListModel::rowsRemoved, this, &QmlBridge::onInstancesChanged);
         connect(i, &QAbstractListModel::dataChanged, this, &QmlBridge::onInstancesChanged);
     }
-    // Pipe launch outcomes back to QML as toast notifications.
+    // Pipe launch outcomes back to QML as toast notifications + running-state
+    // tracking. The bridge exposes a runningInstances QStringList so the
+    // library can flip Play → Kill on the active card.
     connect(APPLICATION, &Application::instanceLaunchSucceeded, this,
             [this](const QString &id) {
                 emit notification("ok", tr("« %1 » terminé.").arg(id));
+                if (m_runningInstances.removeAll(id) > 0)
+                    emit runningInstancesChanged();
             });
     connect(APPLICATION, &Application::instanceLaunchFailed, this,
             [this](const QString &id, const QString &err) {
                 emit notification("error",
                     tr("Échec du lancement de « %1 » : %2").arg(id, err));
+                if (m_runningInstances.removeAll(id) > 0)
+                    emit runningInstancesChanged();
             });
     rebuildAccounts();
     rebuildInstances();
@@ -282,6 +288,10 @@ void QmlBridge::launchInstance(const QString &instanceId, bool offline)
     bool ok = APPLICATION->launch(inst, !offline, nullptr, nullptr, nullptr, QString());
     if (ok) {
         emit notification("info", tr("Lancement de « %1 »…").arg(inst->name()));
+        if (!m_runningInstances.contains(instanceId)) {
+            m_runningInstances.append(instanceId);
+            emit runningInstancesChanged();
+        }
     } else {
         emit notification("error",
             tr("Impossible de lancer « %1 ». Vérifie Java / le compte sélectionné.")

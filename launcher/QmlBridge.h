@@ -23,6 +23,7 @@ class QmlBridge : public QObject
     Q_PROPERTY(bool         hasAccount      READ hasAccount      NOTIFY accountsChanged)
     Q_PROPERTY(QString      defaultPlayer   READ defaultPlayer   NOTIFY accountsChanged)
     Q_PROPERTY(QString      defaultKind     READ defaultKind     NOTIFY accountsChanged)
+    Q_PROPERTY(QStringList  runningInstances READ runningInstances NOTIFY runningInstancesChanged)
 
 public:
     explicit QmlBridge(QObject *parent = nullptr);
@@ -32,6 +33,8 @@ public:
     bool hasAccount() const        { return !m_accounts.isEmpty(); }
     QString defaultPlayer() const  { return m_defaultPlayer; }
     QString defaultKind() const    { return m_defaultKind; }
+    QStringList runningInstances() const { return m_runningInstances; }
+    Q_INVOKABLE bool isRunning(const QString &id) const { return m_runningInstances.contains(id); }
 
     // Called by Application once accounts/instances are loaded.
     void rebuildAccounts();
@@ -80,6 +83,7 @@ public slots:
 signals:
     void accountsChanged();
     void instancesChanged();
+    void runningInstancesChanged();
     void notification(const QString &kind, const QString &message);
 
 private slots:
@@ -91,6 +95,7 @@ private:
     QVariantList m_instances;
     QString m_defaultPlayer;
     QString m_defaultKind;
+    QStringList m_runningInstances;
 
     AccountList* accountList() const;
     InstanceList* instanceList() const;

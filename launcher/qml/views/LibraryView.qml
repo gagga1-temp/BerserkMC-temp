@@ -247,8 +247,11 @@ Rectangle {
                                         sub: model.sub
                                         iconSource: model.iconSrc
                                         selected: index === page.selectedIndex
+                                        running: typeof App !== "undefined" && App.runningInstances.indexOf(model.id_) >= 0
                                         onClicked: page.selectedIndex = index
-                                        onDoubleClicked: console.log("launch", model.name)
+                                        onDoubleClicked: {
+                                            if (typeof App !== "undefined") App.launchInstance(model.id_, false)
+                                        }
                                     }
                                 }
 
@@ -268,6 +271,11 @@ Rectangle {
             InstanceSidebar {
                 Layout.preferredWidth: 320
                 Layout.fillHeight: true
+                instanceId: page.selectedInstanceId()
+                isRunning: typeof App !== "undefined" && App.runningInstances.indexOf(instanceId) >= 0
+                onKill: {
+                    if (instanceId && typeof App !== "undefined") App.killInstance(instanceId)
+                }
                 instance: {
                     var inst = page.selectedInstance();
                     if (!inst) return { name: qsTr("Aucune sélection"), sub: "—",
