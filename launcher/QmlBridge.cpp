@@ -14,6 +14,8 @@
 #include "DesktopServices.h"
 #include "settings/SettingsObject.h"
 #include "FileSystem.h"
+#include "java/JavaInstallList.h"
+#include "java/JavaInstall.h"
 #include "ui/dialogs/CopyInstanceDialog.h"
 #include "ui/dialogs/ExportInstanceDialog.h"
 #include "ui/dialogs/CreateShortcutDialog.h"
@@ -433,6 +435,27 @@ void QmlBridge::openChangelog()
 }
 
 #include <QFileDialog>
+
+void QmlBridge::detectJava()
+{
+    auto list = APPLICATION->javalist();
+    if (!list) {
+        emit notification("error", tr("Java install list indisponible."));
+        return;
+    }
+    emit notification("info", tr("Scan des installations Java en cours…"));
+    auto task = list->getLoadTask();
+    if (!task) return;
+    auto self = this;
+    QObject::connect(task.get(), &Task::succeeded, this, [self, list]() {
+        emit self->notification("ok",
+            tr("Scan terminé — %1 Java détecté(s).").arg(list->count()));
+    });
+    QObject::connect(task.get(), &Task::failed, this, [self](QString err) {
+        emit self->notification("error", tr("Scan Java échoué : %1").arg(err));
+    });
+    task->start();
+}
 
 QString QmlBridge::browseForJava()
 {

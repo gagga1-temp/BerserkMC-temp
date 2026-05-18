@@ -262,7 +262,15 @@ Rectangle {
                                 Behavior on x     { NumberAnimation { duration: Theme.durFast; easing.type: Easing.OutCubic } }
                                 Behavior on color { ColorAnimation { duration: Theme.durFast } }
                             }
-                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: page.detectJava = !page.detectJava }
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    page.detectJava = !page.detectJava
+                                    if (page.detectJava && typeof App !== "undefined")
+                                        App.detectJava()
+                                }
+                            }
                         }
                     }
 

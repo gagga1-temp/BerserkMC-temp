@@ -70,6 +70,7 @@ public slots:
     void     setSetting(const QString &key, const QVariant &value);
     void     openChangelog();
     QString  browseForJava();   // opens a native file picker, returns path or ""
+    void     detectJava();      // scans the system for Java installs (Adoptium/etc.)
 
 signals:
     void accountsChanged();
