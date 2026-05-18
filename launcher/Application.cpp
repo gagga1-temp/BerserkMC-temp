@@ -265,9 +265,12 @@ Application::Application(int &argc, char **argv) : QApplication(argc, argv)
         parser.addOption("import");
         parser.addShortOpt("import", 'I');
         parser.addDocumentation("import", "Import instance from specified zip (local path or URL)");
-        // --qml-preview (experimental new UI)
+        // --qml-preview (now an alias kept for compat; QML is the default)
         parser.addSwitch("qml-preview");
-        parser.addDocumentation("qml-preview", "Open the experimental Qt Quick UI shell instead of the classic Widgets one");
+        parser.addDocumentation("qml-preview", "Force the Qt Quick UI (default since 0.1)");
+        // --legacy-ui (opt back into the classic Widgets MainWindow)
+        parser.addSwitch("legacy-ui");
+        parser.addDocumentation("legacy-ui", "Use the classic Widgets MainWindow instead of the Qt Quick UI");
 
         // parse the arguments
         try
@@ -311,7 +314,9 @@ Application::Application(int &argc, char **argv) : QApplication(argc, argv)
     }
     m_liveCheck = args["alive"].toBool();
     m_zipToImport = args["import"].toUrl();
-    m_useQmlUi = args["qml-preview"].toBool();
+    // Qt Quick is the default — pass --legacy-ui to fall back to the classic
+    // Widgets shell. --qml-preview is still accepted for compatibility.
+    m_useQmlUi = !args["legacy-ui"].toBool();
 
     QString origcwdPath = QDir::currentPath();
     QString binPath = applicationDirPath();

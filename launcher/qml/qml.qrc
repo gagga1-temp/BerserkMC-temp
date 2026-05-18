@@ -10,6 +10,7 @@
         <file>components/Toolbar.qml</file>
         <file>components/InstanceCard.qml</file>
         <file>components/InstanceSidebar.qml</file>
+        <file>components/Toast.qml</file>
         <file>views/LibraryView.qml</file>
         <file>views/WelcomeView.qml</file>
         <file>views/AccountsView.qml</file>

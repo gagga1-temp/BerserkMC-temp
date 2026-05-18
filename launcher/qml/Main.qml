@@ -165,6 +165,16 @@ ApplicationWindow {
         }
     }
 
+    // Toast overlay — always above the StackView, listens to App.notification.
+    Toast {
+        id: toastLayer
+    }
+
+    Component.onCompleted: {
+        if (typeof App !== "undefined")
+            toastLayer.push("info", qsTr("Bienvenue — UI Qt Quick active"))
+    }
+
     // ===== Resize edges =====
     component Edge: MouseArea {
         property int edges
