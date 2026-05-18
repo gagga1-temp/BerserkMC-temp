@@ -245,6 +245,46 @@ Rectangle {
                     var id = page.selectedInstanceId()
                     if (id && typeof App !== "undefined") App.launchInstance(id, true)
                 }
+                onOpenMods: {
+                    var id = page.selectedInstanceId()
+                    if (id && typeof App !== "undefined") App.viewMods(id)
+                }
+                onOpenWorlds: {
+                    var id = page.selectedInstanceId()
+                    if (id && typeof App !== "undefined") App.viewWorlds(id)
+                }
+                onOpenEdit: {
+                    var id = page.selectedInstanceId()
+                    if (id && typeof App !== "undefined") App.editInstance(id, "")
+                }
+                onOpenFolder: {
+                    var id = page.selectedInstanceId()
+                    if (id && typeof App !== "undefined") App.openFolder("minecraft:" + id)
+                }
+                onOpenScreenshots: {
+                    var id = page.selectedInstanceId()
+                    if (id && typeof App !== "undefined") App.manageScreenshots(id)
+                }
+                onOpenNotes: {
+                    var id = page.selectedInstanceId()
+                    if (id && typeof App !== "undefined") App.editNotes(id)
+                }
+                onDuplicateRequested: {
+                    var id = page.selectedInstanceId()
+                    if (id && typeof App !== "undefined") App.duplicateInstance(id)
+                }
+                onExportRequested: {
+                    var id = page.selectedInstanceId()
+                    if (id && typeof App !== "undefined") App.exportInstance(id)
+                }
+                onShortcutRequested: {
+                    var id = page.selectedInstanceId()
+                    if (id && typeof App !== "undefined") App.createShortcut(id)
+                }
+                onDeleteRequested: {
+                    var id = page.selectedInstanceId()
+                    if (id && typeof App !== "undefined") App.deleteInstance(id)
+                }
             }
         }
     }

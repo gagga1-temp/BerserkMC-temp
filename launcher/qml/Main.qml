@@ -110,9 +110,8 @@ ApplicationWindow {
                 // don't double-navigate.
             }
             onMicrosoftLoginRequested: {
-                // Microsoft auth flow still routes through the existing cpp
-                // AccountsDialog for now (Phase 7-B wires the QML version).
-                console.log("ms login requested — Phase 7-B")
+                // Open the existing cpp AccountsDialog for the MSA login flow.
+                if (typeof App !== "undefined") App.showAccountsDialog()
             }
         }
     }
@@ -125,7 +124,9 @@ ApplicationWindow {
             onAccountsRequested:    stack.push(accountsComp)
             onSettingsRequested:    stack.push(settingsComp)
             onNewInstanceRequested: stack.push(newInstanceComp)
-            onFoldersRequested:     console.log("open folders TODO")
+            onFoldersRequested: {
+                if (typeof App !== "undefined") App.openFolder("launcher")
+            }
         }
     }
 
@@ -139,7 +140,8 @@ ApplicationWindow {
         NewInstanceView {
             onBack: stack.pop()
             onCreated: function(name, version, loader) {
-                console.log("create", name, version, loader)
+                if (typeof App !== "undefined")
+                    App.createVanillaInstance(name, version, loader)
                 stack.pop()
             }
         }

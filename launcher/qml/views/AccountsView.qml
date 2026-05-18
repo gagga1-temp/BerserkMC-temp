@@ -64,6 +64,76 @@ Rectangle {
         addOfflinePopup.open()
     }
 
+    // ===== Modal popup: rename offline account =====
+    Popup {
+        id: renamePopup
+        property alias nameField: renameField
+        property string targetId: ""
+        modal: true
+        focus: true
+        anchors.centerIn: Overlay.overlay
+        implicitWidth: 380
+        implicitHeight: 220
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
+        background: Rectangle { color: Theme.bgElevated; radius: Theme.radiusLg; border.color: Theme.borderSubtle; border.width: 1 }
+        Overlay.modal: Rectangle { color: Qt.rgba(0,0,0,0.45) }
+
+        contentItem: ColumnLayout {
+            spacing: 14
+            Text {
+                text: qsTr("Renommer le compte")
+                color: Theme.textPrimary
+                font.family: Theme.fontBody
+                font.pointSize: 14
+                font.weight: Font.Bold
+            }
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: 42
+                radius: Theme.radiusMd
+                color: Theme.bgInput
+                border.color: renameField.activeFocus ? Theme.accentRing : Theme.borderSubtle
+                border.width: 1
+                Behavior on border.color { ColorAnimation { duration: Theme.durFast } }
+                TextField {
+                    id: renameField
+                    anchors.fill: parent
+                    anchors.leftMargin: 14
+                    anchors.rightMargin: 14
+                    color: Theme.textPrimary
+                    font.family: Theme.fontBody
+                    font.pointSize: 13
+                    maximumLength: 16
+                    background: null
+                    verticalAlignment: TextInput.AlignVCenter
+                    validator: RegExpValidator { regExp: /^[a-zA-Z0-9_]{0,16}$/ }
+                    onAccepted: renameConfirm.tryRename()
+                }
+            }
+            Item { Layout.fillHeight: true }
+            Row {
+                Layout.alignment: Qt.AlignRight
+                spacing: 8
+                IconButton { variant: "ghost"; text: qsTr("Annuler"); onClicked: renamePopup.close() }
+                IconButton {
+                    id: renameConfirm
+                    variant: "primary"
+                    iconName: "pencil"
+                    text: qsTr("Renommer")
+                    enabled: renameField.text.length >= 3
+                    opacity: enabled ? 1 : 0.5
+                    function tryRename() {
+                        if (renameField.text.length < 3) return
+                        if (typeof App !== "undefined")
+                            App.renameOfflineAccount(renamePopup.targetId, renameField.text)
+                        renamePopup.close()
+                    }
+                    onClicked: tryRename()
+                }
+            }
+        }
+    }
+
     // ===== Modal popup: create offline account =====
     Popup {
         id: addOfflinePopup
@@ -384,7 +454,7 @@ Rectangle {
                         variant: "filled"
                         iconName: "user"
                         text: qsTr("Ajouter compte Microsoft")
-                        onClicked: console.log("add MS")
+                        onClicked: if (typeof App !== "undefined") App.showAccountsDialog()
                     }
                 }
             }
@@ -594,6 +664,15 @@ Rectangle {
                                 variant: "filled"
                                 iconName: "pencil"
                                 text: qsTr("Renommer")
+                                enabled: page.current() && page.current().kind === "Offline"
+                                opacity: enabled ? 1 : 0.4
+                                onClicked: {
+                                    var c = page.current()
+                                    if (!c) return
+                                    renamePopup.nameField.text = c.name
+                                    renamePopup.targetId = c.internalId
+                                    renamePopup.open()
+                                }
                             }
                             IconButton {
                                 variant: "danger"

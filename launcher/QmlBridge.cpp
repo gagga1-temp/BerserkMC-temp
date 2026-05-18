@@ -6,9 +6,20 @@
 #include "minecraft/auth/MinecraftAccount.h"
 #include "InstanceList.h"
 #include "BaseInstance.h"
+#include "minecraft/MinecraftInstance.h"
+#include "DesktopServices.h"
+#include "settings/SettingsObject.h"
+#include "FileSystem.h"
+#include "ui/dialogs/CopyInstanceDialog.h"
+#include "ui/dialogs/ExportInstanceDialog.h"
+#include "ui/dialogs/CreateShortcutDialog.h"
+#include "ui/dialogs/CustomMessageBox.h"
 
 #include <QAbstractListModel>
 #include <QDebug>
+#include <QFileInfo>
+#include <QDir>
+#include <QMessageBox>
 
 QmlBridge::QmlBridge(QObject *parent) : QObject(parent) {}
 
@@ -161,4 +172,171 @@ void QmlBridge::launchInstance(const QString &instanceId, bool offline)
         return;
     }
     APPLICATION->launch(inst, !offline, nullptr, nullptr, nullptr, QString());
+}
+
+void QmlBridge::renameOfflineAccount(const QString &internalId, const QString &newName)
+{
+    MinecraftAccountPtr acc;
+    int row;
+    if (!APPLICATION->accounts()->getAccountById(internalId, acc, row) || !acc) {
+        emit notification("error", tr("Compte introuvable."));
+        return;
+    }
+    if (!acc->isOffline()) {
+        emit notification("error", tr("Seuls les comptes hors-ligne sont renommables."));
+        return;
+    }
+    if (newName.size() < 3 || newName.size() > 16) {
+        emit notification("error", tr("Pseudo invalide (3 à 16 caractères)."));
+        return;
+    }
+    // Recreate offline acc with new name + restore default flag, then drop old.
+    auto fresh = MinecraftAccount::createOffline(newName);
+    if (!fresh) {
+        emit notification("error", tr("Renommage échoué."));
+        return;
+    }
+    const bool wasDefault = (APPLICATION->accounts()->defaultAccount()
+                              && APPLICATION->accounts()->defaultAccount()->internalId() == internalId);
+    APPLICATION->accounts()->removeAccount(internalId);
+    auto idx = APPLICATION->accounts()->addAccount(fresh);
+    if (idx.isValid() && wasDefault) {
+        APPLICATION->accounts()->setDefaultAccount(fresh);
+    }
+    emit notification("ok", tr("Renommé en « %1 ».").arg(newName));
+}
+
+void QmlBridge::showAccountsDialog()
+{
+    APPLICATION->ShowAccountsDialog(nullptr);
+}
+
+void QmlBridge::killInstance(const QString &instanceId)
+{
+    auto inst = APPLICATION->instances()->getInstanceById(instanceId);
+    if (inst) APPLICATION->kill(inst);
+}
+
+void QmlBridge::editInstance(const QString &instanceId, const QString &page)
+{
+    auto inst = APPLICATION->instances()->getInstanceById(instanceId);
+    if (!inst) return;
+    APPLICATION->showInstanceWindow(inst, page);
+}
+
+void QmlBridge::viewMods(const QString &instanceId)          { editInstance(instanceId, "mods"); }
+void QmlBridge::viewWorlds(const QString &instanceId)        { editInstance(instanceId, "worlds"); }
+void QmlBridge::manageScreenshots(const QString &instanceId) { editInstance(instanceId, "screenshots"); }
+void QmlBridge::editNotes(const QString &instanceId)         { editInstance(instanceId, "notes"); }
+
+void QmlBridge::duplicateInstance(const QString &instanceId)
+{
+    auto inst = APPLICATION->instances()->getInstanceById(instanceId);
+    if (!inst) return;
+    CopyInstanceDialog dlg(inst, nullptr);
+    dlg.exec();
+}
+
+void QmlBridge::exportInstance(const QString &instanceId)
+{
+    auto inst = APPLICATION->instances()->getInstanceById(instanceId);
+    if (!inst) return;
+    ExportInstanceDialog dlg(inst, nullptr);
+    dlg.exec();
+}
+
+void QmlBridge::createShortcut(const QString &instanceId)
+{
+    auto inst = APPLICATION->instances()->getInstanceById(instanceId);
+    if (!inst) return;
+    CreateShortcutDialog dlg(nullptr, inst);
+    dlg.exec();
+}
+
+void QmlBridge::deleteInstance(const QString &instanceId)
+{
+    auto inst = APPLICATION->instances()->getInstanceById(instanceId);
+    if (!inst) return;
+    auto answer = CustomMessageBox::selectable(
+        nullptr,
+        tr("Supprimer l'instance ?"),
+        tr("Tu es sur le point de supprimer « %1 ». Cette opération est définitive.\n\nContinuer ?")
+            .arg(inst->name()),
+        QMessageBox::Warning,
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No
+    )->exec();
+    if (answer == QMessageBox::Yes) {
+        APPLICATION->instances()->deleteInstance(instanceId);
+        emit notification("ok", tr("Instance supprimée."));
+    }
+}
+
+bool QmlBridge::createVanillaInstance(const QString &name, const QString &version, const QString &loader)
+{
+    // Phase 7-D placeholder — wiring the full InstanceCreationTask + loader
+    // install means re-implementing chunks of NewInstanceDialog. Surface a
+    // notification so QML at least confirms the action ran end-to-end.
+    Q_UNUSED(loader);
+    emit notification("info",
+        tr("Création de « %1 » (Minecraft %2) — pas encore branché au cpp.")
+            .arg(name, version));
+    return false;
+}
+
+void QmlBridge::openFolder(const QString &kind)
+{
+    // "<kind>" or "<kind>:<instanceId>"
+    QString k = kind;
+    QString instId;
+    int sep = kind.indexOf(':');
+    if (sep >= 0) {
+        k = kind.left(sep);
+        instId = kind.mid(sep + 1);
+    }
+
+    if (k == "launcher") {
+        DesktopServices::openDirectory(APPLICATION->root());
+        return;
+    }
+    if (k == "central-mods") {
+        DesktopServices::openDirectory(APPLICATION->settings()->get("CentralModsDir").toString());
+        return;
+    }
+    if (k == "instances-root") {
+        DesktopServices::openDirectory(APPLICATION->settings()->get("InstanceDir").toString());
+        return;
+    }
+
+    if (instId.isEmpty()) return;
+    auto inst = APPLICATION->instances()->getInstanceById(instId);
+    if (!inst) return;
+
+    if (k == "instance") {
+        DesktopServices::openDirectory(inst->instanceRoot());
+    } else if (k == "minecraft" || k == "mods" || k == "worlds" || k == "screenshots") {
+        auto mc = std::dynamic_pointer_cast<MinecraftInstance>(inst);
+        if (!mc) return;
+        if (k == "minecraft")        DesktopServices::openDirectory(mc->gameRoot());
+        else if (k == "mods")        DesktopServices::openDirectory(mc->modsRoot());
+        else if (k == "worlds")      DesktopServices::openDirectory(mc->worldDir());
+        else                          DesktopServices::openDirectory(FS::PathCombine(mc->gameRoot(), "screenshots"));
+    }
+}
+
+QVariant QmlBridge::getSetting(const QString &key, const QVariant &fallback)
+{
+    auto v = APPLICATION->settings()->get(key);
+    return v.isValid() ? v : fallback;
+}
+
+void QmlBridge::setSetting(const QString &key, const QVariant &value)
+{
+    APPLICATION->settings()->set(key, value);
+}
+
+void QmlBridge::openChangelog()
+{
+    DesktopServices::openUrl(QUrl::fromLocalFile(
+        QDir(APPLICATION->root()).absoluteFilePath("changelog.md")));
 }

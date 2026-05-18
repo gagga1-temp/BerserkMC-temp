@@ -16,12 +16,12 @@ Rectangle {
     readonly property string viewTitle: "RÉGLAGES"
     signal back()
 
-    // ===== Local mock state (Phase 7 wires to QSettings) =====
-    property string javaPath: "C:\\Program Files\\Eclipse Adoptium\\jdk-8.0.482.8-hotspot\\bin\\javaw.exe"
-    property real   maxRam:   4096
+    // ===== Bridge-backed settings =====
+    property string javaPath: ""
+    property real   maxRam:   1024
     property bool   detectJava: true
     property bool   animations: true
-    property bool   closeOnLaunch: true
+    property bool   closeOnLaunch: false
     property bool   showConsoleOnStart: false
     property int    accentIndex: 0
     readonly property var accents: [
@@ -31,6 +31,26 @@ Rectangle {
         { name: "Rouge",        hex: "#e35858" },
         { name: "Orange",       hex: "#f6a623" }
     ]
+
+    // Load persisted values once, before any onChanged handler can fire.
+    property bool _ready: false
+    Component.onCompleted: {
+        if (typeof App !== "undefined") {
+            page.javaPath           = App.getSetting("JavaPath", "")
+            page.maxRam             = parseInt(App.getSetting("MaxMemAlloc", 1024))
+            page.closeOnLaunch      = App.getSetting("AutoCloseConsole", false) === true
+                                   || App.getSetting("AutoCloseConsole", false) === "true"
+            page.showConsoleOnStart = App.getSetting("ShowConsole", false) === true
+                                   || App.getSetting("ShowConsole", false) === "true"
+        }
+        page._ready = true
+    }
+
+    // Persist on every change (debounced just by event coalescing).
+    onJavaPathChanged:            if (_ready && typeof App !== "undefined") App.setSetting("JavaPath", javaPath)
+    onMaxRamChanged:              if (_ready && typeof App !== "undefined") App.setSetting("MaxMemAlloc", Math.round(maxRam))
+    onCloseOnLaunchChanged:       if (_ready && typeof App !== "undefined") App.setSetting("AutoCloseConsole", closeOnLaunch)
+    onShowConsoleOnStartChanged:  if (_ready && typeof App !== "undefined") App.setSetting("ShowConsole", showConsoleOnStart)
 
     ColumnLayout {
         anchors.fill: parent
@@ -399,7 +419,11 @@ Rectangle {
                             Text { text: qsTr("Version"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
                             Text { text: qsTr("BerserkMC 0.1.0 — fork de MultiMC 5"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                         }
-                        IconButton { variant: "filled"; text: qsTr("Voir le changelog") }
+                        IconButton {
+                            variant: "filled"
+                            text: qsTr("Voir le changelog")
+                            onClicked: if (typeof App !== "undefined") App.openChangelog()
+                        }
                     }
 
                     RowLayout {
@@ -411,7 +435,12 @@ Rectangle {
                             Text { text: qsTr("Dossier launcher"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
                             Text { text: qsTr("C:\\Users\\Karim\\Documents\\BerserkLauncher"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                         }
-                        IconButton { variant: "filled"; iconName: "folder"; text: qsTr("Ouvrir") }
+                        IconButton {
+                            variant: "filled"
+                            iconName: "folder"
+                            text: qsTr("Ouvrir")
+                            onClicked: if (typeof App !== "undefined") App.openFolder("launcher")
+                        }
                     }
                 }
 

@@ -16,6 +16,12 @@ Rectangle {
     signal openWorlds()
     signal openEdit()
     signal openFolder()
+    signal openScreenshots()
+    signal openNotes()
+    signal duplicateRequested()
+    signal exportRequested()
+    signal shortcutRequested()
+    signal deleteRequested()
 
     color: Theme.bgSurface
 
@@ -241,12 +247,12 @@ Rectangle {
                     Layout.fillWidth: true
                     visible: morePane.moreOpen
                     spacing: 0
-                    IconButton { width: parent.width; variant: "ghost"; iconName: "camera"; text: qsTr("Screenshots") }
-                    IconButton { width: parent.width; variant: "ghost"; iconName: "note";   text: qsTr("Notes") }
-                    IconButton { width: parent.width; variant: "ghost"; iconName: "copy";   text: qsTr("Dupliquer") }
-                    IconButton { width: parent.width; variant: "ghost"; iconName: "upload"; text: qsTr("Exporter") }
-                    IconButton { width: parent.width; variant: "ghost"; iconName: "link";   text: qsTr("Raccourci bureau") }
-                    IconButton { width: parent.width; variant: "danger"; iconName: "trash"; text: qsTr("Supprimer") }
+                    IconButton { width: parent.width; variant: "ghost";  iconName: "camera"; text: qsTr("Screenshots");      onClicked: side.openScreenshots() }
+                    IconButton { width: parent.width; variant: "ghost";  iconName: "note";   text: qsTr("Notes");           onClicked: side.openNotes() }
+                    IconButton { width: parent.width; variant: "ghost";  iconName: "copy";   text: qsTr("Dupliquer");       onClicked: side.duplicateRequested() }
+                    IconButton { width: parent.width; variant: "ghost";  iconName: "upload"; text: qsTr("Exporter");        onClicked: side.exportRequested() }
+                    IconButton { width: parent.width; variant: "ghost";  iconName: "link";   text: qsTr("Raccourci bureau"); onClicked: side.shortcutRequested() }
+                    IconButton { width: parent.width; variant: "danger"; iconName: "trash";  text: qsTr("Supprimer");       onClicked: side.deleteRequested() }
                 }
             }
 

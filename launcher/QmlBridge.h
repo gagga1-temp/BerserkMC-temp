@@ -39,11 +39,36 @@ public:
     void connectModels();
 
 public slots:
-    // QML action surface — invocable from QML directly.
+    // Accounts
     void createOfflineAccount(const QString &playerName);
     void setDefaultAccount(const QString &internalId);
     void removeAccount(const QString &internalId);
+    void renameOfflineAccount(const QString &internalId, const QString &newName);
+    void showAccountsDialog();         // opens the cpp AccountsDialog (MS login)
+
+    // Instance lifecycle
     void launchInstance(const QString &instanceId, bool offline = false);
+    void killInstance(const QString &instanceId);
+    void editInstance(const QString &instanceId, const QString &page = QString());
+    void viewMods(const QString &instanceId);
+    void viewWorlds(const QString &instanceId);
+    void manageScreenshots(const QString &instanceId);
+    void editNotes(const QString &instanceId);
+    void duplicateInstance(const QString &instanceId);
+    void exportInstance(const QString &instanceId);
+    void createShortcut(const QString &instanceId);
+    void deleteInstance(const QString &instanceId);
+    bool createVanillaInstance(const QString &name, const QString &version, const QString &loader);
+
+    // Folder shortcuts (kind: "launcher" | "instance:<id>" | "minecraft:<id>" |
+    //   "mods:<id>" | "worlds:<id>" | "screenshots:<id>" | "central-mods" |
+    //   "config")
+    void openFolder(const QString &kind);
+
+    // Settings get/set (string round-trips through QVariant)
+    QVariant getSetting(const QString &key, const QVariant &fallback = QVariant());
+    void     setSetting(const QString &key, const QVariant &value);
+    void     openChangelog();
 
 signals:
     void accountsChanged();
