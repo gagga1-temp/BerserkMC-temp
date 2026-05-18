@@ -170,7 +170,16 @@ Rectangle {
                                     onTextChanged: page.javaPath = text
                                 }
                             }
-                            IconButton { variant: "filled"; iconName: "folder"; dense: true }
+                            IconButton {
+                                variant: "filled"
+                                iconName: "folder"
+                                dense: true
+                                onClicked: {
+                                    if (typeof App === "undefined") return
+                                    var p = App.browseForJava()
+                                    if (p && p.length) page.javaPath = p
+                                }
+                            }
                         }
                     }
 

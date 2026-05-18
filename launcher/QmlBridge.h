@@ -69,6 +69,7 @@ public slots:
     QVariant getSetting(const QString &key, const QVariant &fallback = QVariant());
     void     setSetting(const QString &key, const QVariant &value);
     void     openChangelog();
+    QString  browseForJava();   // opens a native file picker, returns path or ""
 
 signals:
     void accountsChanged();

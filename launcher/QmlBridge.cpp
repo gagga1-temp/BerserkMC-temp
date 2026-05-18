@@ -431,3 +431,25 @@ void QmlBridge::openChangelog()
     DesktopServices::openUrl(QUrl::fromLocalFile(
         QDir(APPLICATION->root()).absoluteFilePath("changelog.md")));
 }
+
+#include <QFileDialog>
+
+QString QmlBridge::browseForJava()
+{
+    QString filter =
+#ifdef Q_OS_WIN
+        "Java (javaw.exe);;Tous les fichiers (*)";
+#else
+        "Java executables (java);;All files (*)";
+#endif
+    QString start = APPLICATION->settings()->get("JavaPath").toString();
+    QString picked = QFileDialog::getOpenFileName(
+        nullptr,
+        tr("Choisis l'exécutable Java"),
+        start,
+        filter);
+    if (!picked.isEmpty()) {
+        APPLICATION->settings()->set("JavaPath", picked);
+    }
+    return picked;
+}
