@@ -12,6 +12,8 @@ set(CORE_SOURCES
     QmlBridge.cpp
     QmlIconProvider.h
     QmlIconProvider.cpp
+    JavaInstaller.h
+    JavaInstaller.cpp
 
     # LOGIC - Base classes and infrastructure
     BaseInstaller.h

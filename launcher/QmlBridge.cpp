@@ -16,6 +16,7 @@
 #include "FileSystem.h"
 #include "java/JavaInstallList.h"
 #include "java/JavaInstall.h"
+#include "JavaInstaller.h"
 #include "ui/dialogs/CopyInstanceDialog.h"
 #include "ui/dialogs/ExportInstanceDialog.h"
 #include "ui/dialogs/CreateShortcutDialog.h"
@@ -29,7 +30,36 @@
 #include <QMessageBox>
 #include <QStandardPaths>
 
-QmlBridge::QmlBridge(QObject *parent) : QObject(parent) {}
+QmlBridge::QmlBridge(QObject *parent) : QObject(parent)
+{
+    m_javaInstaller = new JavaInstaller(this);
+    connect(m_javaInstaller, &JavaInstaller::started, this, [this](int v) {
+        emit notification("info", tr("Installation Java %1 démarrée…").arg(v));
+    });
+    connect(m_javaInstaller, &JavaInstaller::finished, this,
+            [this](int v, bool ok, const QString &path, const QString &err) {
+        if (ok) {
+            emit notification("ok", tr("Java %1 installé : %2").arg(v).arg(path));
+        } else {
+            emit notification("error", tr("Java %1: %2").arg(v).arg(err));
+        }
+    });
+}
+
+bool QmlBridge::javaIsInstalled(int majorVersion)
+{
+    return JavaInstaller::isInstalled(majorVersion);
+}
+
+QString QmlBridge::javaPathFor(int majorVersion)
+{
+    return JavaInstaller::javawPathFor(majorVersion);
+}
+
+void QmlBridge::installJava(int majorVersion)
+{
+    if (m_javaInstaller) m_javaInstaller->install(majorVersion);
+}
 
 AccountList* QmlBridge::accountList() const
 {

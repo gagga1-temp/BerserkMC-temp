@@ -66,6 +66,26 @@ Rectangle {
         if (typeof App !== "undefined") App.setSetting("AccentHex", hex)
     }
 
+    // Bumped whenever a Java install finishes so the rows re-check
+    // App.javaIsInstalled(...).
+    property int javaInstallTick: 0
+    function isJavaInstalled(v) {
+        javaInstallTick; // touch the property so binding refreshes
+        return typeof App !== "undefined" && App.javaIsInstalled(v)
+    }
+    Connections {
+        target: typeof App !== "undefined" ? App : null
+        function onNotification(kind, message) {
+            if ((kind === "ok" || kind === "error") && message.indexOf("Java") >= 0)
+                page.javaInstallTick++
+        }
+    }
+    readonly property var javaMatrix: [
+        { v: 8,  label: qsTr("Java 8"),  hint: qsTr("Minecraft 1.5 – 1.16") },
+        { v: 17, label: qsTr("Java 17"), hint: qsTr("Minecraft 1.17 – 1.20.4") },
+        { v: 21, label: qsTr("Java 21"), hint: qsTr("Minecraft 1.20.5+") }
+    ]
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -253,6 +273,66 @@ Rectangle {
                                     page.detectJava = !page.detectJava
                                     if (page.detectJava && typeof App !== "undefined")
                                         App.detectJava()
+                                }
+                            }
+                        }
+                    }
+
+                    // Java auto-install matrix
+                    Column {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        Text { text: qsTr("Installation automatique"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                        Text { text: qsTr("Télécharge et installe la version Temurin demandée sous launcher/java/."); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                    }
+                    Column {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Repeater {
+                            model: page.javaMatrix
+                            delegate: Rectangle {
+                                width: parent.width
+                                implicitHeight: 60
+                                radius: Theme.radiusMd
+                                color: Theme.bgSurface
+                                border.color: Theme.borderSubtle
+                                border.width: 1
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 14
+                                    anchors.rightMargin: 12
+                                    spacing: 12
+                                    // Status dot
+                                    Rectangle {
+                                        implicitWidth: 10; implicitHeight: 10
+                                        radius: 5
+                                        color: page.isJavaInstalled(modelData.v)
+                                            ? Theme.accentStrong
+                                            : Theme.textDim
+                                    }
+                                    Column {
+                                        Layout.fillWidth: true
+                                        spacing: 2
+                                        Text { text: modelData.label; color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                                        Text {
+                                            text: page.isJavaInstalled(modelData.v)
+                                                ? qsTr("Installé · ") + (App.javaPathFor(modelData.v) || "")
+                                                : modelData.hint
+                                            color: Theme.textDim
+                                            font.family: Theme.fontBody
+                                            font.pointSize: 9
+                                            elide: Text.ElideMiddle
+                                            width: parent.width
+                                        }
+                                    }
+                                    IconButton {
+                                        variant: page.isJavaInstalled(modelData.v) ? "filled" : "primary"
+                                        iconName: "plus"
+                                        text: page.isJavaInstalled(modelData.v)
+                                            ? qsTr("Réinstaller")
+                                            : qsTr("Installer")
+                                        onClicked: if (typeof App !== "undefined") App.installJava(modelData.v)
+                                    }
                                 }
                             }
                         }

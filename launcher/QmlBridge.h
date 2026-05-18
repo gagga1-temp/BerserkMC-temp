@@ -38,6 +38,11 @@ public:
     void rebuildInstances();
     void connectModels();
 
+public:
+    Q_INVOKABLE bool javaIsInstalled(int majorVersion);
+    Q_INVOKABLE QString javaPathFor(int majorVersion);
+    Q_INVOKABLE void installJava(int majorVersion);
+
 public slots:
     // Accounts
     void createOfflineAccount(const QString &playerName);
@@ -89,4 +94,6 @@ private:
 
     AccountList* accountList() const;
     InstanceList* instanceList() const;
+
+    class JavaInstaller* m_javaInstaller = nullptr;
 };
