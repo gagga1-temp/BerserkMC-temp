@@ -329,10 +329,41 @@ Rectangle {
                         Layout.bottomMargin: 4
                     }
 
+                    // Empty state inside the left list
+                    Column {
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignHCenter
+                        spacing: 8
+                        visible: accounts.count === 0
+                        Layout.topMargin: 16
+                        Icon {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            name: "user"
+                            color: Theme.textDim
+                            size: 36
+                        }
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: qsTr("Aucun compte")
+                            color: Theme.textMuted
+                            font.family: Theme.fontBody
+                            font.pointSize: 11
+                            font.weight: Font.DemiBold
+                        }
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: qsTr("Ajoute-en un avec les boutons ci-dessous.")
+                            color: Theme.textDim
+                            font.family: Theme.fontBody
+                            font.pointSize: 9
+                        }
+                    }
+
                     ScrollView {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         clip: true
+                        visible: accounts.count > 0
 
                         ColumnLayout {
                             width: parent.parent.availableWidth

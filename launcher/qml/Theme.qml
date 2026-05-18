@@ -28,13 +28,27 @@ QtObject {
     readonly property color textMuted:    Qt.hsla(180/360, 0.67, 0.99, 0.75)
     readonly property color textDim:      Qt.hsla(180/360, 0.67, 0.99, 0.50)
 
-    // ===== Accent (vert Berserk) =====
-    readonly property color accent:       Qt.hsla(129/360, 0.77, 0.43, 0.75)
-    readonly property color accentStrong: Qt.hsla(129/360, 0.77, 0.43, 0.92)
-    readonly property color accentSoft:   Qt.hsla(129/360, 0.77, 0.43, 0.15)
-    readonly property color accentRing:   Qt.hsla(129/360, 0.77, 0.43, 0.35)
-    readonly property color accentGlow1:  Qt.hsla(129/360, 0.77, 0.43, 0.20)
-    readonly property color accentGlow2:  Qt.hsla(129/360, 0.77, 0.43, 0.12)
+    // ===== Accent (vert Berserk par défaut, modifiable via setAccent) =====
+    property color accent:       Qt.hsla(129/360, 0.77, 0.43, 0.75)
+    property color accentStrong: Qt.hsla(129/360, 0.77, 0.43, 0.92)
+    property color accentSoft:   Qt.hsla(129/360, 0.77, 0.43, 0.15)
+    property color accentRing:   Qt.hsla(129/360, 0.77, 0.43, 0.35)
+    property color accentGlow1:  Qt.hsla(129/360, 0.77, 0.43, 0.20)
+    property color accentGlow2:  Qt.hsla(129/360, 0.77, 0.43, 0.12)
+
+    // Derive all six accent variants from a hex string. Call from QML to
+    // re-tint the whole UI at runtime.
+    function setAccent(hex) {
+        var col = Qt.color(hex)
+        if (!col) return
+        var r = col.r, g = col.g, b = col.b
+        accent       = Qt.rgba(r, g, b, 0.75)
+        accentStrong = Qt.rgba(r, g, b, 0.92)
+        accentSoft   = Qt.rgba(r, g, b, 0.15)
+        accentRing   = Qt.rgba(r, g, b, 0.35)
+        accentGlow1  = Qt.rgba(r, g, b, 0.20)
+        accentGlow2  = Qt.rgba(r, g, b, 0.12)
+    }
 
     readonly property color accentYellow: Qt.hsla( 41/360, 0.99, 0.59, 0.75)
     readonly property color accentRed:    Qt.hsla(  4/360, 1.00, 0.71, 0.75)

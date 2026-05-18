@@ -42,6 +42,14 @@ Rectangle {
                                    || App.getSetting("AutoCloseConsole", false) === "true"
             page.showConsoleOnStart = App.getSetting("ShowConsole", false) === true
                                    || App.getSetting("ShowConsole", false) === "true"
+            // Restore accent
+            var savedAccent = App.getSetting("AccentHex", "")
+            if (savedAccent && savedAccent.length) {
+                for (var i = 0; i < page.accents.length; ++i) {
+                    if (page.accents[i].hex === savedAccent) { page.accentIndex = i; break }
+                }
+                Theme.setAccent(savedAccent)
+            }
         }
         page._ready = true
     }
@@ -51,6 +59,12 @@ Rectangle {
     onMaxRamChanged:              if (_ready && typeof App !== "undefined") App.setSetting("MaxMemAlloc", Math.round(maxRam))
     onCloseOnLaunchChanged:       if (_ready && typeof App !== "undefined") App.setSetting("AutoCloseConsole", closeOnLaunch)
     onShowConsoleOnStartChanged:  if (_ready && typeof App !== "undefined") App.setSetting("ShowConsole", showConsoleOnStart)
+    onAccentIndexChanged: {
+        if (!_ready) return
+        var hex = accents[accentIndex].hex
+        Theme.setAccent(hex)
+        if (typeof App !== "undefined") App.setSetting("AccentHex", hex)
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -390,6 +404,68 @@ Rectangle {
                                 Behavior on x { NumberAnimation { duration: Theme.durFast; easing.type: Easing.OutCubic } }
                             }
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: page.showConsoleOnStart = !page.showConsoleOnStart }
+                        }
+                    }
+
+                    // Window size selector
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 16
+                        Column {
+                            Layout.fillWidth: true
+                            spacing: 2
+                            Text { text: qsTr("Taille de la fenêtre Minecraft"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                            Text { text: qsTr("Définit la résolution de départ du jeu"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                        }
+                        ComboBox {
+                            id: sizeCombo
+                            implicitWidth: 180
+                            model: [
+                                qsTr("854 × 480"),
+                                qsTr("1280 × 720"),
+                                qsTr("1920 × 1080"),
+                                qsTr("Plein écran")
+                            ]
+                            property var presets: [
+                                { w: 854,  h: 480,  max: false },
+                                { w: 1280, h: 720,  max: false },
+                                { w: 1920, h: 1080, max: false },
+                                { w: 0,    h: 0,    max: true  }
+                            ]
+                            background: Rectangle {
+                                implicitHeight: 36
+                                radius: Theme.radiusMd
+                                color: sizeCombo.activeFocus ? Theme.bgInputOff : Theme.bgInput
+                                border.color: sizeCombo.activeFocus ? Theme.accentRing : Theme.borderSubtle
+                                border.width: 1
+                            }
+                            contentItem: Text {
+                                leftPadding: 12
+                                text: sizeCombo.displayText
+                                color: Theme.textPrimary
+                                font.family: Theme.fontBody
+                                font.pointSize: 11
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            onActivated: {
+                                if (!page._ready || typeof App === "undefined") return
+                                var p = presets[index]
+                                App.setSetting("LaunchMaximized", p.max)
+                                if (!p.max) {
+                                    App.setSetting("MinecraftWinWidth",  p.w)
+                                    App.setSetting("MinecraftWinHeight", p.h)
+                                }
+                            }
+                            Component.onCompleted: {
+                                if (typeof App === "undefined") return
+                                var isMax = App.getSetting("LaunchMaximized", false) === true
+                                if (isMax) { sizeCombo.currentIndex = 3; return }
+                                var w = parseInt(App.getSetting("MinecraftWinWidth", 854))
+                                for (var i = 0; i < 3; ++i) {
+                                    if (presets[i].w === w) { sizeCombo.currentIndex = i; return }
+                                }
+                                sizeCombo.currentIndex = 0
+                            }
                         }
                     }
 

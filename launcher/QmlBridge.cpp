@@ -123,6 +123,20 @@ void QmlBridge::rebuildInstances()
         m["lastPlayed"]  = inst->lastLaunch();
         m["totalPlayed"] = inst->totalTimePlayed();
         m["lastTimePlayed"] = inst->lastTimePlayed();
+
+        // Crude mod count: list .jar / .jar.disabled files under <gameRoot>/mods.
+        // Fast and avoids spinning up the full ModFolderModel just for the badge.
+        int mods = 0;
+        auto mc = std::dynamic_pointer_cast<MinecraftInstance>(inst);
+        if (mc) {
+            QDir modsDir(mc->modsRoot());
+            if (modsDir.exists()) {
+                QStringList filters; filters << "*.jar" << "*.jar.disabled" << "*.litemod";
+                mods = modsDir.entryList(filters, QDir::Files | QDir::NoDotAndDotDot).size();
+            }
+        }
+        m["mods"] = mods;
+
         m_instances.append(m);
     }
 }
@@ -171,7 +185,14 @@ void QmlBridge::launchInstance(const QString &instanceId, bool offline)
         emit notification("error", tr("Instance introuvable: %1").arg(instanceId));
         return;
     }
-    APPLICATION->launch(inst, !offline, nullptr, nullptr, nullptr, QString());
+    bool ok = APPLICATION->launch(inst, !offline, nullptr, nullptr, nullptr, QString());
+    if (ok) {
+        emit notification("info", tr("Lancement de « %1 »…").arg(inst->name()));
+    } else {
+        emit notification("error",
+            tr("Impossible de lancer « %1 ». Vérifie Java / le compte sélectionné.")
+                .arg(inst->name()));
+    }
 }
 
 void QmlBridge::renameOfflineAccount(const QString &internalId, const QString &newName)

@@ -171,8 +171,13 @@ ApplicationWindow {
     }
 
     Component.onCompleted: {
-        if (typeof App !== "undefined")
+        if (typeof App !== "undefined") {
+            // Restore persisted accent color before any view paints itself.
+            var savedAccent = App.getSetting("AccentHex", "")
+            if (savedAccent && savedAccent.length)
+                Theme.setAccent(savedAccent)
             toastLayer.push("info", qsTr("Bienvenue — UI Qt Quick active"))
+        }
     }
 
     // ===== Resize edges =====

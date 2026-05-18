@@ -68,7 +68,7 @@ Rectangle {
                 iconSrc:   iconPathFor(src.iconKey),
                 mc:        src.mcVersion || "",
                 playtime:  formatPlaytime(src.totalPlayed),
-                mods:      0
+                mods:      src.mods || 0
             })
         }
     }
@@ -171,10 +171,50 @@ Rectangle {
                         }
                     }
 
+                    // Empty state — shown only when no instances at all (the
+                    // "Add" tile inside the Flow handles the +1 case too, but
+                    // this gives a real welcome to fresh installs).
+                    Column {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.alignment: Qt.AlignCenter
+                        spacing: 14
+                        visible: instancesModel.count === 0
+                        Icon {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            name: "pickaxe"
+                            color: Theme.textDim
+                            size: 64
+                        }
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: qsTr("Aucune instance pour l'instant")
+                            color: Theme.textPrimary
+                            font.family: Theme.fontBody
+                            font.pointSize: 14
+                            font.weight: Font.DemiBold
+                        }
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: qsTr("Crée ta première instance pour commencer à jouer.")
+                            color: Theme.textDim
+                            font.family: Theme.fontBody
+                            font.pointSize: 11
+                        }
+                        IconButton {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            variant: "primary"
+                            iconName: "plus"
+                            text: qsTr("Créer une instance")
+                            onClicked: page.newInstanceRequested()
+                        }
+                    }
+
                     // Card grid — Flow lays cards out left-to-right, wraps on
                     // overflow. ScrollView.availableWidth binding makes Flow
                     // honour the real visible width inside the scroll viewport.
                     ScrollView {
+                        visible: instancesModel.count > 0
                         id: gridScroll
                         Layout.fillWidth: true
                         Layout.fillHeight: true
