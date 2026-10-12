@@ -39,13 +39,13 @@ Rectangle {
         ListElement { label: "Importer .zip"; icon: "upload"; available: false }
     }
 
-    // Full live version list fetched from Mojang's launchermeta on mount.
-    // No cpp wiring needed — QML's XMLHttpRequest does the GET, JSON.parse
-    // does the rest. Phase 7 swaps this out for the cpp MinecraftVersionList
-    // model when we want offline caching and bundled metadata.
+    // Version list comes from the cpp meta index (App.minecraftVersions()) —
+    // the same source instance creation resolves against, so any version shown
+    // here is guaranteed to resolve at creation. It also uses the local meta
+    // cache, so it works without hitting Mojang directly.
     property string latestRelease: ""
     property string latestSnapshot: ""
-    property string filter: "release"          // release | snapshot | all
+    property string filter: "release"          // release | snapshot | old | all
     property bool loadingVersions: true
     property string loadError: ""
 
@@ -75,15 +75,15 @@ Rectangle {
                 if (seen >= 400) break    // cap render cost; old Minecraft has 1000+ snaps
             }
         }
-        // Initial selection: latest of the active filter
-        if (versions.count > 0)
+        // Auto-select the first match, but never clobber a user's choice.
+        if (page.selectedVersion.length === 0 && versions.count > 0)
             page.selectedVersion = versions.get(0).id_
     }
     onFilterChanged: rebuildVersions()
 
-    function humanizeAge(iso) {
-        if (!iso) return ""
-        var then = new Date(iso).getTime()
+    function humanizeAge(ms) {
+        if (!ms || ms <= 0) return ""
+        var then = Number(ms)
         if (isNaN(then)) return ""
         var diff = (Date.now() - then) / 1000
         if (diff < 60)            return "à l'instant"
@@ -94,44 +94,39 @@ Rectangle {
         return "il y a " + Math.floor(diff / 86400 / 365) + " ans"
     }
 
-    function fetchVersions() {
-        page.loadingVersions = true
-        page.loadError = ""
-        var xhr = new XMLHttpRequest()
-        xhr.open("GET", "https://launchermeta.mojang.com/mc/game/version_manifest_v2.json")
-        xhr.setRequestHeader("Accept", "application/json")
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.DONE) return
-            if (xhr.status !== 200) {
-                page.loadError = qsTr("Manifest indisponible (HTTP %1)").arg(xhr.status)
-                page.loadingVersions = false
-                return
-            }
-            try {
-                var data = JSON.parse(xhr.responseText)
-                page.latestRelease  = data.latest.release  || ""
-                page.latestSnapshot = data.latest.snapshot || ""
-                allVersions.clear()
-                for (var i = 0; i < data.versions.length; ++i) {
-                    var v = data.versions[i]
-                    allVersions.append({
-                        id_: v.id,
-                        type: v.type,                              // release | snapshot | old_beta | old_alpha
-                        age:  humanizeAge(v.releaseTime),
-                        releaseTime: v.releaseTime
-                    })
-                }
-                rebuildVersions()
-                page.loadingVersions = false
-            } catch (e) {
-                page.loadError = qsTr("Manifest illisible : %1").arg(e.toString())
-                page.loadingVersions = false
-            }
+    function refreshVersions() {
+        if (typeof App === "undefined") return
+        page.loadingVersions = App.minecraftVersionsLoading()
+        var data = App.minecraftVersions()
+        page.latestRelease = ""
+        page.latestSnapshot = ""
+        var relT = -1, snapT = -1
+        allVersions.clear()
+        for (var i = 0; i < data.length; ++i) {
+            var v = data[i]
+            var t = Number(v.time)
+            if (v.type === "release" && t > relT)  { relT = t;  page.latestRelease = v.id }
+            if (v.type === "snapshot" && t > snapT) { snapT = t; page.latestSnapshot = v.id }
+            allVersions.append({
+                id_: v.id,
+                type: v.type,                 // release | snapshot | old_beta | old_alpha
+                age:  humanizeAge(t),
+                releaseTime: t
+            })
         }
-        xhr.send()
+        page.loadingVersions = App.minecraftVersionsLoading()
+        page.loadError = (!page.loadingVersions && allVersions.count === 0)
+            ? qsTr("Aucune version disponible (métadonnées Minecraft non chargées).")
+            : ""
+        rebuildVersions()
     }
 
-    Component.onCompleted: fetchVersions()
+    Connections {
+        target: (typeof App !== "undefined") ? App : null
+        function onVersionListChanged() { page.refreshVersions() }
+    }
+
+    Component.onCompleted: refreshVersions()
 
     ColumnLayout {
         anchors.fill: parent
@@ -465,7 +460,7 @@ Rectangle {
                                         variant: "filled"
                                         dense: true
                                         text: qsTr("Réessayer")
-                                        onClicked: page.fetchVersions()
+                                        onClicked: page.refreshVersions()
                                     }
                                 }
                             }

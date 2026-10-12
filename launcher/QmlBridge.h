@@ -34,7 +34,6 @@ public:
     QString defaultPlayer() const  { return m_defaultPlayer; }
     QString defaultKind() const    { return m_defaultKind; }
     QStringList runningInstances() const { return m_runningInstances; }
-    Q_INVOKABLE bool isRunning(const QString &id) const { return m_runningInstances.contains(id); }
 
     // Called by Application once accounts/instances are loaded.
     void rebuildAccounts();
@@ -69,8 +68,7 @@ public slots:
     bool createVanillaInstance(const QString &name, const QString &version, const QString &loader);
 
     // Folder shortcuts (kind: "launcher" | "instance:<id>" | "minecraft:<id>" |
-    //   "mods:<id>" | "worlds:<id>" | "screenshots:<id>" | "central-mods" |
-    //   "config")
+    //   "mods:<id>" | "worlds:<id>" | "screenshots:<id>")
     void openFolder(const QString &kind);
 
     // Settings get/set (string round-trips through QVariant)
@@ -82,15 +80,23 @@ public slots:
     Q_INVOKABLE QString launcherRoot() const; // data folder shown in the settings UI
     Q_INVOKABLE QString launcherVersion() const; // human-readable version shown in the About section
 
+    // Minecraft version catalogue, sourced from the cpp meta index so it shares
+    // a single source of truth with instance creation (and honours the local
+    // meta cache instead of hitting Mojang directly).
+    Q_INVOKABLE QVariantList minecraftVersions();
+    Q_INVOKABLE bool minecraftVersionsLoading() const { return m_mcVersionsLoading; }
+
 signals:
     void accountsChanged();
     void instancesChanged();
     void runningInstancesChanged();
+    void versionListChanged();
     void notification(const QString &kind, const QString &message);
 
 private slots:
     void onAccountsChanged();
     void onInstancesChanged();
+    void onMinecraftVersionsLoaded();
 
 private:
     QVariantList m_accounts;
@@ -98,6 +104,11 @@ private:
     QString m_defaultPlayer;
     QString m_defaultKind;
     QStringList m_runningInstances;
+    QVariantList m_mcVersions;
+    bool m_mcVersionsLoading = false;
+    bool m_mcVersionsLoaded = false;
+
+    void rebuildMinecraftVersions();
 
     AccountList* accountList() const;
     InstanceList* instanceList() const;

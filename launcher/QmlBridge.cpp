@@ -199,9 +199,6 @@ void QmlBridge::rebuildAccounts()
         m["kind"]         = acc->isOffline() ? QStringLiteral("Offline") : QStringLiteral("Microsoft");
         m["offlineUuid"]  = acc->profileId();
         m["isDefault"]    = (def && def->internalId() == acc->internalId());
-        m["stateText"]    = acc->accountStateText();
-        m["ownsMinecraft"]= acc->ownsMinecraft();
-        m["hasProfile"]   = acc->hasProfile();
         m_accounts.append(m);
 
         if (m["isDefault"].toBool()) {
@@ -582,14 +579,6 @@ void QmlBridge::openFolder(const QString &kind)
         DesktopServices::openDirectory(APPLICATION->root());
         return;
     }
-    if (k == "central-mods") {
-        DesktopServices::openDirectory(APPLICATION->settings()->get("CentralModsDir").toString());
-        return;
-    }
-    if (k == "instances-root") {
-        DesktopServices::openDirectory(APPLICATION->settings()->get("InstanceDir").toString());
-        return;
-    }
 
     if (instId.isEmpty()) return;
     auto inst = APPLICATION->instances()->getInstanceById(instId);
@@ -644,6 +633,63 @@ QString QmlBridge::launcherRoot() const
 QString QmlBridge::launcherVersion() const
 {
     return BuildConfig.printableVersionString();
+}
+
+QVariantList QmlBridge::minecraftVersions()
+{
+    auto idx = APPLICATION ? APPLICATION->metadataIndex() : nullptr;
+    if (!idx) return m_mcVersions;
+    auto vl = idx->get("net.minecraft");
+    if (!vl) return m_mcVersions;
+
+    if (!vl->isLoaded()) {
+        if (!m_mcVersionsLoading) {
+            m_mcVersionsLoading = true;
+            auto task = vl->getLoadTask();
+            if (task) {
+                connect(task.get(), &Task::succeeded, this, &QmlBridge::onMinecraftVersionsLoaded);
+                connect(task.get(), &Task::failed, this, &QmlBridge::onMinecraftVersionsLoaded);
+                task->start();
+            }
+        }
+    }
+    // load() parses the local meta file synchronously, so the data may already
+    // be available even while a remote refresh is still running.
+    if (vl->isLoaded() && !m_mcVersionsLoaded) {
+        m_mcVersionsLoaded = true;
+        m_mcVersionsLoading = false;
+        rebuildMinecraftVersions();
+        emit versionListChanged();
+    }
+    return m_mcVersions;
+}
+
+void QmlBridge::onMinecraftVersionsLoaded()
+{
+    m_mcVersionsLoading = false;
+    m_mcVersionsLoaded = true;
+    rebuildMinecraftVersions();
+    emit versionListChanged();
+}
+
+void QmlBridge::rebuildMinecraftVersions()
+{
+    m_mcVersions.clear();
+    auto idx = APPLICATION ? APPLICATION->metadataIndex() : nullptr;
+    if (!idx) return;
+    auto vl = idx->get("net.minecraft");
+    if (!vl || !vl->isLoaded()) return;
+
+    const auto versions = vl->versions();
+    m_mcVersions.reserve(versions.size());
+    for (const auto &v : versions) {
+        if (!v) continue;
+        QVariantMap m;
+        m["id"]   = v->descriptor();
+        m["type"] = v->type();
+        m["time"] = v->rawTime(); // epoch milliseconds, humanised in QML
+        m_mcVersions.append(m);
+    }
 }
 
 #include <QFileDialog>
