@@ -99,12 +99,12 @@ Légende : P0 = bug bloquant, P1 = doit être corrigé, P2 = à compléter, P3 =
   - `BaseInstance.cpp:271-321` : write de fichier à chaque set, code mal placé.
   - `Application.cpp:135` : note Qt 5.15.2 instable sous Windows.
   - `QuickPlayTarget.cpp:20` : aucune validation possible.
-- [ ] **Valeurs codées en dur dans l'UI** — Fait : `Main.qml` toast dev "Bienvenue…" supprimé, `Toolbar.qml:11` (`"Karim_"`/`"K"` → défauts neutres), `NewInstanceView.qml` (`"1.21"`/`"1.21 Vanilla"` → vides), `SettingsView.qml:589` ("BerserkMC 0.1.0" → version liée). Reste : `Main.qml` ("QML PREVIEW"), `Titlebar.qml:20` (ko-fi).
+- [x] **Valeurs codées en dur dans l'UI** — Fait : `Main.qml` toast dev "Bienvenue…" supprimé, `Toolbar.qml:11` (`"Karim_"`/`"K"` → défauts neutres), `NewInstanceView.qml` (`"1.21"`/`"1.21 Vanilla"` → vides), `SettingsView.qml:589` ("BerserkMC 0.1.0" → version liée). → `Main.qml` `currentSection` par défaut vide (plus de "QML PREVIEW") ; pastille ko-fi de `Titlebar.qml` supprimée (propriété `kofiUrl`, commentaire d'en-tête et couleurs `Theme.kofi*` mortes retirés).
 - [ ] **Couleurs hardcodées hors thème** — `Titlebar.qml:66,74,125,134`, `AccountsView.qml`/`Toolbar.qml` (`#7ab1ff`), `NewInstanceView.qml` (`#ffa9a9`).
-- [ ] **Commentaires stalés** — `QmlBridge.cpp:403` (contredit le code), `LibraryView.qml:2-3` ("Phase 3 mock data" alors que le modèle est réel).
+- [x] **Commentaires stalés** — `LibraryView.qml:2-3` ("Phase 3 mock data" alors que le modèle est réel) → commentaire d'en-tête corrigé (liste réelle via `App.instances`). `QmlBridge.cpp:403` : déjà résolu par le rework P2-68 (plus aucun commentaire contredisant le code).
 - [ ] **`InstanceSidebar.qml:262,272`** : `contentY` mort ; **`InstanceCard.qml:44`** : tuile Add.
-- [ ] **`qsTr()` sur chaîne dynamique** — `AccountsView.qml:543` intraduisible.
-- [ ] **SEO/docs** : `SettingsView.qml:286` dit "sous launcher/java/" alors que c'est `APPLICATION->root()/JavaInstaller` (`JavaInstaller.cpp:34`).
+- [x] **`qsTr()` sur chaîne dynamique** — `AccountsView.qml` : `qsTr()` englobait une chaîne déjà passée à `.arg()` (extraction impossible). → `qsTr("COMPTE %1").arg(...)`.
+- [x] **SEO/docs** : `SettingsView.qml:308` — texte exact du chemin Java corrigé (Adoptium Temurin sous `APPLICATION->root()/java/temurin-<version>` ; affiche dynamiquement le dossier de données via `page.launcherRoot`). `SettingsView.qml:286` (ancienne ligne) obsolète → MAJ.
 
 ---
 

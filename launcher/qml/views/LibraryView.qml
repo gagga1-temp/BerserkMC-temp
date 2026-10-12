@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-// Library view: toolbar + instance grid + sidebar. Phase 3 uses mock data —
-// Phase 7 swaps it for the real InstanceList model from the C++ side.
+// Library view: toolbar + instance grid + sidebar. The instance list is the
+// real one, mirrored from App.instances (QmlBridge) into a ListModel below.
 
 import QtQuick 2.15
 import QtQuick.Controls 2.15
@@ -310,10 +310,6 @@ Rectangle {
                              playtime: inst.playtime, mods: inst.mods };
                 }
                 onPlay: {
-                    var id = page.selectedInstanceId()
-                    if (id && typeof App !== "undefined") App.launchInstance(id, true)
-                }
-                onPlayOffline: {
                     var id = page.selectedInstanceId()
                     if (id && typeof App !== "undefined") App.launchInstance(id, true)
                 }

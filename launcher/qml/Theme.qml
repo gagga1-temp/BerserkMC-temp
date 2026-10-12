@@ -53,12 +53,6 @@ QtObject {
     readonly property color accentYellow: Qt.hsla( 41/360, 0.99, 0.59, 0.75)
     readonly property color accentRed:    Qt.hsla(  4/360, 1.00, 0.71, 0.75)
 
-    // Ko-fi pill
-    readonly property color kofiBg:       Qt.rgba(1, 91/255, 91/255, 0.08)
-    readonly property color kofiBgHover:  Qt.rgba(1, 91/255, 91/255, 0.18)
-    readonly property color kofiBorder:   Qt.rgba(1, 91/255, 91/255, 0.20)
-    readonly property color kofiText:     "#ffa9a9"
-
     // ===== Radius =====
     readonly property real radiusSm:  6
     readonly property real radiusMd:  10

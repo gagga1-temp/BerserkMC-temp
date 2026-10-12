@@ -533,7 +533,7 @@ Rectangle {
                                     Text {
                                         id: heroKindLbl
                                         anchors.centerIn: parent
-                                        text: qsTr(page.current() ? "COMPTE %1".arg(page.current().kind.toUpperCase()) : "")
+                                        text: page.current() ? qsTr("COMPTE %1").arg(page.current().kind.toUpperCase()) : ""
                                         color: page.current() && page.current().kind === "Offline" ? Theme.accentStrong : "#7ab1ff"
                                         font.family: Theme.fontBody
                                         font.pointSize: 9

@@ -305,7 +305,10 @@ Rectangle {
                         Layout.fillWidth: true
                         spacing: 4
                         Text { text: qsTr("Installation automatique"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
-                        Text { text: qsTr("Télécharge et installe la version Temurin demandée sous launcher/java/."); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                        Text { text: page.launcherRoot.length
+                                ? qsTr("Télécharge et installe Adoptium Temurin dans « java/temurin-<version> » sous %1.").arg(page.launcherRoot)
+                                : qsTr("Télécharge et installe Adoptium Temurin dans le dossier « java » du launcher.")
+                              color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                     }
                     Column {
                         Layout.fillWidth: true

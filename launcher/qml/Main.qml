@@ -29,8 +29,10 @@ ApplicationWindow {
     readonly property string playerName:  typeof App !== "undefined" && App.defaultPlayer.length ? App.defaultPlayer : "Player"
     readonly property string accountKind: typeof App !== "undefined" && App.defaultKind.length ? App.defaultKind : "Offline"
 
-    // The titlebar's subtitle reflects the current view for orientation.
-    property string currentSection: "QML PREVIEW"
+    // The titlebar's subtitle reflects the current view for orientation. It is
+    // filled in by the StackView's onCurrentItemChanged below, so it starts
+    // empty rather than showing a placeholder.
+    property string currentSection: ""
 
     Rectangle {
         anchors.fill: parent

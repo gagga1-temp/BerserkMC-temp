@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Reusable BerserkMC titlebar:
 //   - β brand (Caveat) + section subtitle (VT323)
-//   - ko-fi support pill -> https://ko-fi.com/gagga1
 //   - native min/maximize/close window controls
 //   - whole bar acts as a drag region for the frameless window
 //
@@ -17,7 +16,6 @@ import BerserkMC.Ui 1.0
 Rectangle {
     id: bar
     property string subtitle: "MC"
-    property string kofiUrl: "https://ko-fi.com/gagga1"
     property Window window: Window.window
 
     implicitHeight: 36
@@ -82,36 +80,6 @@ Rectangle {
         }
 
         Item { Layout.fillWidth: true }
-
-        // Ko-fi support pill
-        Rectangle {
-            id: kofi
-            implicitHeight: 22
-            implicitWidth: kofiText.implicitWidth + 22
-            radius: 999
-            color: kofiMouse.containsMouse ? Theme.kofiBgHover : Theme.kofiBg
-            border.color: Theme.kofiBorder
-            border.width: 1
-            Behavior on color { ColorAnimation { duration: Theme.durFast } }
-
-            Text {
-                id: kofiText
-                anchors.centerIn: parent
-                text: "♡ SUPPORT"
-                color: kofiMouse.containsMouse ? "white" : Theme.kofiText
-                font.family: Theme.fontMono
-                font.pointSize: 9
-                font.letterSpacing: 1.5
-                Behavior on color { ColorAnimation { duration: Theme.durFast } }
-            }
-            MouseArea {
-                id: kofiMouse
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: Qt.openUrlExternally(bar.kofiUrl)
-            }
-        }
 
         // Window controls
         Row {
