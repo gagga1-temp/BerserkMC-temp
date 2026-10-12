@@ -1,7 +1,6 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
     <qresource prefix="/qml">
-        <file>qmldir</file>
         <file>Theme.qml</file>
         <file>Main.qml</file>
         <file>components/Titlebar.qml</file>
@@ -37,7 +36,6 @@
         <file>icons/link.svg</file>
         <file>icons/trash.svg</file>
         <file>icons/dots-h.svg</file>
-        <file>icons/chevron-down.svg</file>
         <file>icons/arrow-left.svg</file>
         <file>icons/pickaxe.svg</file>
         <file>icons/cube.svg</file>
