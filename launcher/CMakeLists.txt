@@ -943,6 +943,16 @@ target_link_libraries(Launcher_logic
 add_executable(${Launcher_Name} MACOSX_BUNDLE WIN32 main.cpp ${LAUNCHER_RCS} ${LAUNCHER_QML_RESOURCES})
 target_link_libraries(${Launcher_Name} Launcher_logic)
 
+# The runtime loads the bundled Java helper jars from <appdir>/jars
+# (JavaChecker / LauncherPartLaunch). Build them with the launcher so that a
+# plain `--target ${Launcher_Name}` produces a runnable tree, not one that
+# aborts at startup with "unable to access jarfile .../jars/JavaCheck.jar".
+foreach(_java_jar_target JavaCheck NewLaunch)
+    if(TARGET ${_java_jar_target})
+        add_dependencies(${Launcher_Name} ${_java_jar_target})
+    endif()
+endforeach()
+
 if(DEFINED Launcher_APP_BINARY_NAME)
     set_target_properties(${Launcher_Name} PROPERTIES OUTPUT_NAME "${Launcher_APP_BINARY_NAME}")
 endif()
