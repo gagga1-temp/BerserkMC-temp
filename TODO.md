@@ -108,6 +108,17 @@ Légende : P0 = bug bloquant, P1 = doit être corrigé, P2 = à compléter, P3 =
 
 ---
 
+## P5 — Java auto-install au lancement (option B)
+
+Objectif : plus besoin d'aller dans les réglages de l'instance choisir Java à la main quand la version MC sélectionnée réclame un Java plus récent que celui configuré.
+
+- [x] **Step `AutoInstallJava`** — `minecraft/launch/AutoInstallJava.{h,cpp}` inséré **avant** `CheckJava` (`MinecraftInstance.cpp:createLaunchTask`). Détermine la version Java minimale via les seuils `g_VersionFilterData` (mêmes règles que `VerifyJavaInstall`), teste le Java configuré via `JavaChecker`, et si absent/trop vieux télécharge **Adoptium Temurin** (via `JavaInstaller`) puis active le runtime **pour l'instance** (`JavaPath` + `OverrideJavaLocation=true`). Java 16 (MC 1.17) mappé sur Temurin 17 (16 non publié par Adoptium). Progression loggée dans la console de lancement.
+- [ ] **Feedback du download dans l'UI QML** — aujourd'hui la progression n'apparaît que dans la console widget (visible si `ShowConsole`). Prévoir un toast/bandeau QML pendant le téléchargement (nouveau signal `Application` → `QmlBridge`).
+- [ ] **Choisir le Java *recommandé*, pas seulement `>=` requise** — actuellement si le Java configuré satisfait `VerifyJavaInstall` (`>=` minimum) il est utilisé tel quel ; un Java beaucoup plus récent peut casser des versions anciennes. Prévoir l'alignement sur la version majeure exacte.
+- [ ] **Annulation du download** — `AutoInstallJava::canAbort()` renvoie `false` ; `JavaInstaller` n'a pas de méthode `cancel()`. Ajouter une annulation propre.
+
+---
+
 ## Notes
 
 - Les headers de copyright `/* Copyright ... MultiMC Contributors */` (234 occurrences) sont **requis** par la licence Apache-2.0 → ne pas toucher.
