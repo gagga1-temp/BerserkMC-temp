@@ -34,7 +34,7 @@ void UpdateDialog::loadChangelog()
 {
     dljob = new NetJob("Changelog", APPLICATION->network());
     QString url;
-    url = QString("https://api.github.com/repos/MultiMC/Launcher/compare/%1...develop").arg(BuildConfig.GIT_COMMIT);
+    url = QString("https://api.github.com/repos/gagga1/BerserkMC/compare/%1...offline-mode").arg(BuildConfig.GIT_COMMIT);
     m_changelogType = CHANGELOG_COMMITS;
     dljob->addNetAction(Net::Download::makeByteArray(QUrl(url), &changelogData));
     connect(dljob.get(), &NetJob::succeeded, this, &UpdateDialog::changelogLoaded);
@@ -48,7 +48,7 @@ QString reprocessMarkdown(QByteArray markdown)
     QString output = hoedown.process(markdown);
 
     // HACK: easier than customizing hoedown
-    output.replace(QRegExp("GH-([0-9]+)"), "<a href=\"https://github.com/MultiMC/Launcher/issues/\\1\">GH-\\1</a>");
+    output.replace(QRegExp("GH-([0-9]+)"), "<a href=\"https://github.com/gagga1/BerserkMC/issues/\\1\">GH-\\1</a>");
     qDebug() << output;
     return output;
 }
@@ -89,7 +89,7 @@ QString reprocessCommits(QByteArray json)
                 result += "<tr><td>";
                 if(issuenr.length())
                 {
-                    result += QString("<a href=\"https://github.com/MultiMC/Launcher/issues/%1\">GH-%2</a>").arg(issuenr, issuenr);
+                    result += QString("<a href=\"https://github.com/gagga1/BerserkMC/issues/%1\">GH-%2</a>").arg(issuenr, issuenr);
                 }
                 else if(prefix.length())
                 {
