@@ -78,13 +78,13 @@ Légende : P0 = bug bloquant, P1 = doit être corrigé, P2 = à compléter, P3 =
 ## P3 — Build / packaging
 
 - [ ] **Aucune CI** — `.github/` contient seulement des templates d'issues, aucun workflow GitHub Actions.
-- [ ] **Sources dupliquées dans la liste UI** — `launcher/CMakeLists.txt:877-882` : `CustomCommands.ui`, `InstanceCardWidget.ui`, `MCModInfoFrame.ui` listés deux fois chacun.
-- [ ] **Fichiers/hardcodes de build** — `CMakeLists.txt` référence `branding/multimc.rc`, `MultiMC.icns` (noms upstream) ; `TECHNIC_API_BUILD` ; version launcher figée `0.7.0` (vs texte UI "0.1.0").
-- [ ] **Instructions de build obsolètes** — `BUILD.md` & `README.fork.md` : Qt 5.6, OpenSSL 1.0.2g, chemins `MultiMC-Offline`/`BerserkLauncher`. Le build réel cible Qt 5.15+ / QML.
-- [ ] **Sous-modules** — `.gitmodules:1` nom `[submodule "depends/libnbtplusplus"]` mais path `libraries/libnbtplusplus` (incohérence de section). Vérifier `git submodule sync`.
-- [ ] **Dépendance QML `QtGraphicalEffects`** non garantie au déploiement — `WelcomeView.qml:8`, `Icon.qml:6` (`ColorOverlay`). Si le module manque, toute l'UI échoue. (`Application.cpp:1489-1490` ne fait que logger.)
-- [ ] **`qmldir` mort** — `launcher/qml/qmldir` déclare `module BerserkMC.Ui` + singleton mais le path `qrc:/qml` n'est jamais importé ; `Theme` est enregistré manuellement (`Application.cpp:1479-1480`).
-- [ ] **Ressources inutilisées** — `qml/icons/chevron-down.svg` enregistré dans `qml.qrc:40` mais jamais référencé.
+- [x] **Sources dupliquées dans la liste UI** — `launcher/CMakeLists.txt:877-882` : `CustomCommands.ui`, `InstanceCardWidget.ui`, `MCModInfoFrame.ui` listés deux fois chacun. → doublons retirés.
+- [x] **Fichiers/hardcodes de build** — `CMakeLists.txt` référence `branding/multimc.rc`, `MultiMC.icns` (noms upstream) ; `TECHNIC_API_BUILD` ; version launcher figée `0.7.0` (vs texte UI "0.1.0"). → branding renommé (`berserkmc.rc`/`BerserkMC.icns`), version UI liée à `BuildConfig` (`QmlBridge::launcherVersion()`), métadonnées Windows alignées sur 0.7.0 ; `TECHNIC_API_BUILD="multimc"` conservé volontairement (endpoint fonctionnel).
+- [x] **Instructions de build obsolètes** — `BUILD.md` & `README.fork.md` : Qt 5.6, OpenSSL 1.0.2g, chemins `MultiMC-Offline`/`BerserkLauncher`. Le build réel cible Qt 5.15+ / QML. → docs mises à jour (P1-e).
+- [x] **Sous-modules** — `.gitmodules:1` nom `[submodule "depends/libnbtplusplus"]` mais path `libraries/libnbtplusplus` (incohérence de section). Vérifier `git submodule sync`. → nom aligné sur le path, gitdir déplacé, `git submodule sync` OK.
+- [x] **Dépendance QML `QtGraphicalEffects`** non garantie au déploiement — `WelcomeView.qml:8`, `Icon.qml:6` (`ColorOverlay`). Si le module manque, toute l'UI échoue. (`Application.cpp:1489-1490` ne fait que logger.) → `deploy.sh` exige désormais chaque module QML (`QtQml QtQuick QtQuick.2 QtGraphicalEffects`) et échoue bruyamment s'il en manque un.
+- [x] **`qmldir` mort** — `launcher/qml/qmldir` déclare `module BerserkMC.Ui` + singleton mais le path `qrc:/qml` n'est jamais importé ; `Theme` est enregistré manuellement (`Application.cpp:1479-1480`). → fichier supprimé (aucun `addImportPath("qrc:/qml")`, `Theme` enregistré en C++).
+- [x] **Ressources inutilisées** — `qml/icons/chevron-down.svg` enregistré dans `qml.qrc:40` mais jamais référencé. → supprimé du `.qrc` et du disque.
 
 ---
 
