@@ -13,9 +13,9 @@
  * limitations under the License.
  */
 
-package org.multimc.onesix;
+package org.berserkmc.onesix;
 
-import org.multimc.*;
+import org.berserkmc.*;
 
 import java.applet.Applet;
 import java.io.File;
@@ -78,6 +78,8 @@ public class OneSixLauncher implements Launcher
         instanceIconId = params.firstSafe("instanceIconId", "default");
 
         // NOTE: this is included for the CraftPresence mod
+        // The property names are intentionally kept as "multimc.instance.*" so
+        // the external CraftPresence mod keeps working.
         System.setProperty("multimc.instance.title", instanceTitle);
         System.setProperty("multimc.instance.icon", instanceIconId);
 

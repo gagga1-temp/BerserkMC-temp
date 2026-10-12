@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.multimc;
+package org.berserkmc;
 
 public class NotFoundException extends Exception
 {
