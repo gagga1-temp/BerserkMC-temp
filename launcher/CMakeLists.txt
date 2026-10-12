@@ -266,6 +266,8 @@ set(MINECRAFT_SOURCES
 
     minecraft/launch/ClaimAccount.cpp
     minecraft/launch/ClaimAccount.h
+    minecraft/launch/AutoInstallJava.cpp
+    minecraft/launch/AutoInstallJava.h
     minecraft/launch/CreateGameFolders.cpp
     minecraft/launch/CreateGameFolders.h
     minecraft/launch/ModMinecraftJar.cpp

@@ -25,6 +25,7 @@
 #include "minecraft/launch/DirectJavaLaunch.h"
 #include "minecraft/launch/ModMinecraftJar.h"
 #include "minecraft/launch/ClaimAccount.h"
+#include "minecraft/launch/AutoInstallJava.h"
 #include "minecraft/launch/ReconstructAssets.h"
 #include "minecraft/launch/ScanModFolders.h"
 #include "minecraft/launch/VerifyJavaInstall.h"
@@ -862,6 +863,13 @@ shared_qobject_ptr<LaunchTask> MinecraftInstance::createLaunchTask(AuthSessionPt
     // print a header
     {
         process->appendStep(new TextPrint(pptr, "Minecraft folder is:\n" + gameRoot() + "\n\n", MessageLevel::Launcher));
+    }
+
+    // Make sure the Java runtime this Minecraft version needs is present
+    // before CheckJava validates the configured path. Downloads Adoptium
+    // Temurin on demand and activates it for this instance only.
+    {
+        process->appendStep(new AutoInstallJava(pptr));
     }
 
     // check java
