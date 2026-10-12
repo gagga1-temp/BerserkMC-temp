@@ -23,8 +23,8 @@ Légende : P0 = bug bloquant, P1 = doit être corrigé, P2 = à compléter, P3 =
 ## P1 — Rebranding incomplet (MultiMC → BerserkMC)
 
 ### Naming global incohérent (BerserkMC vs BerserkLauncher vs MultiMC)
-- [ ] Unifier le nom : `CMakeLists.txt:142` = **BerserkMC**, mais `README.fork.md` partout = **BerserkLauncher** (`:1,16,48,74`) et mentionne `berserklauncher.cfg` (faux, le fichier est `berserkmc.cfg`).
-- [ ] `deploy.sh:11` et `dev-qml.sh:16` : paths de build stalés (`MultiMC-Offline-build`), `deploy.sh:5,11` : dossier `BerserkLauncher` → aligner sur BerserkMC.
+- [x] Nom unifié sur **BerserkMC** : `README.fork.md` réécrit (`:1,16,48,74` → BerserkMC, `berserklauncher.cfg` → `berserkmc.cfg`, section build Windows corrigée MSYS2/Qt5.15, section push → `gagga1/BerserkMC`). `CMakeLists.txt:144` = BerserkMC. Build OK.
+- [x] `deploy.sh:5,11` + `dev-qml.sh:16` : paths alignés (`BUILD_DIR=/c/opencode/project/BerserkMC/build-mingw64`, `INSTALL_DIR=.../BerserkMC`). Build OK.
 
 ### Ressources Qt / icônes
 - [x] Renommé `launcher/resources/multimc/` → `resources/berserkmc/` (git mv) + `multimc.qrc` → `berserkmc.qrc` ; MAJ `launcher/CMakeLists.txt:887`, `launcher/ui/dialogs/UpdateDialog.ui:88`, `launcher/main.cpp:43` (`Q_INIT_RESOURCE(berserkmc)`). Build OK.
@@ -38,27 +38,27 @@ Légende : P0 = bug bloquant, P1 = doit être corrigé, P2 = à compléter, P3 =
 - [x] `branding/genicons.sh:10,21` génère désormais `BerserkMC.ico`/`BerserkMC.icns`.
 
 ### Java package / Maven / IDs (`org.multimc.*`)
-- [ ] Classe principale `org.multimc.EntryPoint` (`LauncherPartLaunch.cpp:110`) + package `libraries/launcher/org/multimc/*.java` + `System.setProperty("multimc.instance.title"/"multimc.instance.icon")`. ⚠️ Couplé : renommer casse la compat avec les instances existantes — décider et documenter.
-- [ ] Coordonnées Maven générées : `NewComponentDialog.cpp:71`, `OneSixVersionFormat.cpp:348`, `PackProfile.cpp:1050,1067,1107`, `ATLPackInstallTask.cpp:273,301,395`.
+- [x] **Décision (utilisateur) : renommer le package Java uniquement.** Package `org.multimc` → `org.berserkmc` (dir `libraries/launcher/org/berserkmc/`, `package`/`import`/qualifieurs, `CMakeLists.txt:6,10-17` entry point + SRC, `LauncherPartLaunch.cpp:110`). Sûr : `NewLaunch.jar` est buildé par notre CMake (`add_jar`), donc les deux côtés utilisent notre classe. **Conservé** : propriétés `multimc.instance.title/icon` (contrat externe du mod **CraftPresence**, cf. commentaire `OneSixLauncher.java:80`) — documenté.
+- [x] **Coordonnées Maven/IDs de composants upstream conservées** (`org.multimc.jarmod.*`, `org.multimc.jarmods:*`, `org.multimc.atlauncher:*`, `org.multimc:customjar:1`, `org.multimc.custom.*`) — décision utilisateur. Ids opaques stockés par-instance → les renommer ne casserait pas les instances existantes, mais on limite le risque sur l'import/format de packs.
 
 ### URLs runtime (services upstream)
-- [ ] `CMakeLists.txt:82-83` NEWS/RSS multimc.org ; `:156` META_URL `meta.multimc.org` ; `:160` BUG_TRACKER URL.
-- [ ] `BuildConfig.h:108,109,119` : `files.multimc.org/fmllibs`, `files.multimc.org/translations`, `TECHNIC_API_BUILD = "multimc"`.
-- [ ] `TranslationsModel.cpp:577`, `AboutDialog.cpp:137` (patrons.txt), `UpdateDialog.cpp:37,51,92` (repo/API GitHub MultiMC), `LanguageSelectionWidget.cpp:51`, `PageContainer.cpp:210` (wiki).
-- [ ] Clés API upstream (à remplacer par les siennes) : `CMakeLists.txt:157-159` (PasteEE / MSA client id / Imgur).
-- [ ] Sentinel PasteEE `"multimc"` : `Application.cpp:797`, `GuiUtil.cpp:20`, `PasteEEPage.cpp:47,49,67`, `PasteEEPage.ui:43,119`.
+- [x] NEWS/RSS (`multimc.org`) + `META_URL` (`meta.multimc.org`) **conservés** (endpoints fonctionnels — décision utilisateur). `BUG_TRACKER_URL` → `https://github.com/gagga1/BerserkMC/issues`. Build OK.
+- [x] `BuildConfig.h:108,109,119` **conservés** (`files.multimc.org/fmllibs`, `/translations`, `TECHNIC_API_BUILD="multimc"`) — fonctionnels. Build OK.
+- [x] Références GitHub → fork : `UpdateDialog.cpp:37,51,92` (`api.github.com/repos/gagga1/BerserkMC/compare/…offline-mode` + `github.com/gagga1/BerserkMC/issues`), `LanguageSelectionWidget.cpp:51` (`…/wiki/Translating-BerserkMC`), `PageContainer.cpp:210` (`…/wiki/`). Conservés fonctionnels : `TranslationsModel.cpp:577`, `AboutDialog.cpp:137` (patrons.txt). Build OK.
+- [x] Clés API upstream **conservées** (PasteEE / MSA client id / Imgur) — décision utilisateur.
+- [x] Sentinel PasteEE `"multimc"` **conservé** (identifiant interne invisible à l'utilisateur ; le libellé affiché est déjà « BerserkMC key » ; évite de casser les cfg existants).
 
 ### Docs & packaging
-- [ ] `.github/ISSUE_TEMPLATE/*` : Discord multimc, wiki, issues upstream (5 fichiers).
-- [ ] `launcher/package/rpm/MultiMC5.spec`, `launcher/package/ubuntu/multimc/` (desktop, metainfo, man, control, run.sh) : tout est nommé MultiMC.
-- [ ] `doc/multimc.1.txt` (nom fichier, titre, URLs).
-- [ ] `README.md` (reste intégralement upstream), `README.fork.md` (rebrand BerserkMC), `BUILD.md`, `COPYING.md:1` (titre), `changelog.md:1` (titre).
-- [ ] `cmake/MacOSXBundleInfo.plist.in:40` : texte de permission macOS "MultiMC does not need access to your microphone".
-- [ ] `cmake/UnitTest/test.rc:17` : `CompanyName "MultiMC Contributors"`.
-- [ ] `launcher/updater/testdata/tst_DownloadTask-test_writeInstallScript.xml:9` : attend `MultiMC.exe` (sera `BerserkMC.exe`).
+- [x] `.github/ISSUE_TEMPLATE/*` : rebrandés (Discord `discord.gg/berserk`, wiki/issues → `gagga1/BerserkMC`, "MultiMC"→"BerserkMC"). 3 fichiers réels (bug_report, config, suggestion), pas 5.
+- [x] `launcher/package/rpm/MultiMC5.spec` → `BerserkMC.spec` + contenu rebrandé (Name/URL/Provides/paths `/opt/berserkmc`) ; `launcher/package/ubuntu/multimc/` → `berserkmc/` (desktop, metainfo, man, control, opt/berserkmc) rebrandé. NOTE : le wrapper télécharge toujours le binaire upstream MultiMC (pas d'artifact Linux BerserkMC) — documenté dans run.sh + READMEs.
+- [x] `doc/multimc.1.txt` → `doc/berserkmc.1.txt` (nom, titre, URLs → fork). Idem man `berserkmc.1`.
+- [x] `README.md` réécrit (page d'accueil BerserkMC : offline-only, build, licence, politique fork) ; `README.fork.md` rebrandé ; `BUILD.md` (clone URLs → fork, Qt 5.15, note MSYS2, chemins `~/BerserkMC`). `COPYING.md:1` → titre BerserkMC. `changelog.md` **conservé tel quel** = historique upstream légitime (ne pas falsifier).
+- [x] `cmake/MacOSXBundleInfo.plist.in:40` : texte de permission macOS → "BerserkMC does not need access…".
+- [x] `cmake/UnitTest/test.rc:17` : `CompanyName "BerserkMC Contributors"`.
+- [x] `launcher/updater/testdata/tst_DownloadTask-test_writeInstallScript.xml:9` : `MultiMC.exe` → `BerserkMC.exe` (+ dest). Fixture **orpheline** (aucun test `writeInstallScript` ne la référence) → modification cosmétique sans impact.
 
 ### Trailing logic/strings
-- [ ] `NotificationChecker.cpp:42`, commentaires `JavaUtils.cpp:80,87,405`, commentaires de debug dans `InstanceImportTask.cpp:110-113`.
+- [x] Commentaires `JavaUtils.cpp:80,87,405` → "BerserkMC". `InstanceImportTask.cpp:110-113` **conservés** : il s'agit du *format* de pack MultiMC (`ModpackType::MultiMC`, `instance.cfg`), pas du branding (comme "Technic"). (`NotificationChecker.cpp:42` déjà corrigé en P1-d.)
 
 ---
 

@@ -875,10 +875,7 @@ qt5_wrap_ui(LAUNCHER_UI
     ui/pages/modplatform/modrinth/ModrinthPage.ui
     ui/pages/modplatform/technic/TechnicPage.ui
     ui/widgets/CustomCommands.ui
-    ui/widgets/CustomCommands.ui
     ui/widgets/InstanceCardWidget.ui
-    ui/widgets/InstanceCardWidget.ui
-    ui/widgets/MCModInfoFrame.ui
     ui/widgets/MCModInfoFrame.ui
 )
 
