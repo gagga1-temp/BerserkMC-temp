@@ -8,8 +8,8 @@ import BerserkMC.Ui 1.0
 
 Rectangle {
     id: bar
-    property string accountName: "Karim_"
-    property string accountInitial: "K"
+    property string accountName: ""
+    property string accountInitial: "?"
     property string accountKind: "Offline"      // "Offline" | "Microsoft"
 
     signal newInstanceRequested()

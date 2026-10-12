@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Shared header strip used by every sub-view (Accounts / NewInstance /
-// Settings). Back arrow on the left, big title in the middle, optional action
-// slot on the right. Auto-collapses the right slot when empty.
+// Settings). Back arrow on the left, title in the middle.
 
 import QtQuick 2.15
 import QtQuick.Controls 2.15
@@ -14,7 +13,6 @@ Rectangle {
     property string title: ""
     property string subtitle: ""
     property string iconName: ""
-    default property alias rightContent: rightSlot.data
     signal back()
 
     implicitHeight: 64
@@ -87,11 +85,6 @@ Rectangle {
                 font.family: Theme.fontBody
                 font.pointSize: 10
             }
-        }
-
-        Row {
-            id: rightSlot
-            spacing: 8
         }
     }
 
