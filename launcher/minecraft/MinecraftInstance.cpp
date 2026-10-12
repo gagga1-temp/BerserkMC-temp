@@ -865,18 +865,6 @@ shared_qobject_ptr<LaunchTask> MinecraftInstance::createLaunchTask(AuthSessionPt
         process->appendStep(new TextPrint(pptr, "Minecraft folder is:\n" + gameRoot() + "\n\n", MessageLevel::Launcher));
     }
 
-    // Make sure the Java runtime this Minecraft version needs is present
-    // before CheckJava validates the configured path. Downloads Adoptium
-    // Temurin on demand and activates it for this instance only.
-    {
-        process->appendStep(new AutoInstallJava(pptr));
-    }
-
-    // check java
-    {
-        process->appendStep(new CheckJava(pptr));
-    }
-
     // check launch method
     QStringList validMethods = {"LauncherPart", "DirectJava"};
     QString method = launchMethod();
@@ -934,6 +922,19 @@ shared_qobject_ptr<LaunchTask> MinecraftInstance::createLaunchTask(AuthSessionPt
     // after version changes, or the instance would fail to start.
     {
         process->appendStep(new Update(pptr, Net::Mode::Online));
+    }
+
+    // Make sure the Java runtime this Minecraft version needs is present.
+    // This must run after Update: the profile components are only resolved
+    // (and their release dates available) once Update has reloaded the pack.
+    // Downloads Adoptium Temurin on demand and activates it for this instance.
+    {
+        process->appendStep(new AutoInstallJava(pptr));
+    }
+
+    // check java (validates the path AutoInstallJava may have changed)
+    {
+        process->appendStep(new CheckJava(pptr));
     }
 
     // if there are any jar mods

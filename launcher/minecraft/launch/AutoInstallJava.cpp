@@ -11,6 +11,7 @@
 
 #include <QDir>
 #include <QDateTime>
+#include <QDebug>
 
 namespace {
 // Translate the Minecraft version's release date into the minimum Java major it
@@ -43,7 +44,9 @@ void AutoInstallJava::executeTask()
     auto profile = instance->getPackProfile();
     auto mcComponent = profile ? profile->getComponent("net.minecraft") : nullptr;
     if (!mcComponent) {
-        // Nothing to reason about — let CheckJava handle whatever is configured.
+        // Should not happen: this step runs after the profile has been resolved.
+        qWarning() << "AutoInstallJava: net.minecraft component is not available; "
+                      "skipping the Java check and leaving the configured runtime as-is.";
         emitSucceeded();
         return;
     }
