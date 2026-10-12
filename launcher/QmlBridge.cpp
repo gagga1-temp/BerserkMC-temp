@@ -7,6 +7,7 @@
 #include "minecraft/auth/MinecraftAccount.h"
 #include "InstanceList.h"
 #include "BaseInstance.h"
+#include "BaseVersionList.h"
 #include "InstanceCreationTask.h"
 #include "minecraft/MinecraftInstance.h"
 #include "meta/Index.h"
@@ -29,6 +30,7 @@
 #include <QDebug>
 #include <QFileInfo>
 #include <QDir>
+#include <QSet>
 #include <QUrl>
 #include <QCoreApplication>
 #include <QMessageBox>
@@ -412,7 +414,6 @@ void QmlBridge::deleteInstance(const QString &instanceId)
 
 bool QmlBridge::createVanillaInstance(const QString &name, const QString &version, const QString &loader)
 {
-    Q_UNUSED(loader); // mod-loader install is a TODO; vanilla wires today.
     if (name.trimmed().isEmpty() || version.trimmed().isEmpty()) {
         emit notification("error", tr("Nom ou version manquant."));
         return false;
@@ -464,7 +465,16 @@ bool QmlBridge::createVanillaInstance(const QString &name, const QString &versio
     task->setGroup(APPLICATION->settings()->get("LastUsedGroupForNewInstance").toString());
     task->setIcon("default");
 
-    unique_qobject_ptr<Task> wrapped(APPLICATION->instances()->wrapInstanceTask(task));
+    // Remember which instances exist so the one we just created can be
+    // identified by its id — instance names are not unique.
+    QSet<QString> idsBefore;
+    auto il = APPLICATION->instances();
+    for (int i = 0; i < il->rowCount(QModelIndex()); ++i) {
+        if (auto inst = il->at(i))
+            idsBefore.insert(inst->id());
+    }
+
+    unique_qobject_ptr<Task> wrapped(il->wrapInstanceTask(task));
     ProgressDialog dlg(nullptr);
     int rc = dlg.execWithTask(wrapped.get());
     if (rc != QDialog::Accepted) {
@@ -472,30 +482,30 @@ bool QmlBridge::createVanillaInstance(const QString &name, const QString &versio
         return false;
     }
 
-    // Optional mod-loader install. Pick the latest version of the loader
-    // available in the meta index and pin it into the freshly created instance.
+    // Identify the instance that was just committed (id not present before).
+    InstancePtr created;
+    for (int i = 0; i < il->rowCount(QModelIndex()); ++i) {
+        auto inst = il->at(i);
+        if (inst && !idsBefore.contains(inst->id())) { created = inst; break; }
+    }
+    if (!created) {
+        emit notification("error", tr("Instance créée mais introuvable."));
+        return false;
+    }
+
+    // Optional mod-loader install. Resolve the loader list and pin the newest
+    // build that targets the chosen Minecraft version into the new instance.
     QString loaderUid;
-    QString loaderLabel = loader;
     if      (loader == "Fabric")   loaderUid = "net.fabricmc.fabric-loader";
     else if (loader == "Forge")    loaderUid = "net.minecraftforge";
     else if (loader == "Quilt")    loaderUid = "org.quiltmc.quilt-loader";
     else if (loader == "NeoForge") loaderUid = "net.neoforged";
 
-    if (loaderUid.isEmpty() || loader == "Aucun") {
+    if (loaderUid.isEmpty()) {
         emit notification("ok", tr("Instance « %1 » créée.").arg(name));
         return true;
     }
 
-    // Find the new instance by name to attach the loader.
-    InstancePtr created;
-    for (int i = 0; i < APPLICATION->instances()->rowCount(QModelIndex()); ++i) {
-        auto inst = APPLICATION->instances()->at(i);
-        if (inst && inst->name() == name) { created = inst; break; }
-    }
-    if (!created) {
-        emit notification("error", tr("Instance créée mais introuvable pour le loader."));
-        return true;
-    }
     auto mcInst = std::dynamic_pointer_cast<MinecraftInstance>(created);
     if (!mcInst) {
         emit notification("error", tr("Instance non-Minecraft, loader ignoré."));
@@ -509,7 +519,7 @@ bool QmlBridge::createVanillaInstance(const QString &name, const QString &versio
 
     auto loaderList = idx->get(loaderUid);
     if (!loaderList) {
-        emit notification("error", tr("Liste %1 indisponible.").arg(loaderLabel));
+        emit notification("error", tr("Liste %1 indisponible.").arg(loader));
         return true;
     }
     if (!loaderList->isLoaded()) {
@@ -520,14 +530,40 @@ bool QmlBridge::createVanillaInstance(const QString &name, const QString &versio
         }
     }
     if (loaderList->count() == 0) {
-        emit notification("error", tr("Pas de versions de %1.").arg(loaderLabel));
+        emit notification("error", tr("Pas de versions de %1.").arg(loader));
         return true;
     }
-    // Latest = entry 0 in the meta version list.
-    auto latest = loaderList->at(0);
+
+    // Newest loader build that targets this Minecraft version. Fabric/Quilt
+    // advertise no parent version (empty) and therefore match any game version.
+    BaseVersionPtr latest;
+    for (int i = 0; i < loaderList->count(); ++i) {
+        auto candidate = loaderList->at(i);
+        if (!candidate) continue;
+        const QString parent = loaderList
+            ->data(loaderList->index(i, 0), BaseVersionList::ParentVersionRole)
+            .toString();
+        if (parent.isEmpty() || parent == version) {
+            latest = candidate;
+            break;
+        }
+    }
+    if (!latest) {
+        emit notification("error",
+            tr("Aucune version de %1 pour Minecraft %2.").arg(loader, version));
+        return true;
+    }
+
     profile->setComponentVersion(loaderUid, latest->descriptor(), true);
+    // setComponentVersion only records the choice; resolve() fetches the
+    // component metadata and its libraries for the freshly created instance.
+    profile->resolve(Net::Mode::Online);
+    if (auto updateTask = profile->getCurrentTask()) {
+        ProgressDialog ld(nullptr);
+        ld.execWithTask(updateTask.get());
+    }
     emit notification("ok", tr("Instance « %1 » + %2 %3 installé.")
-                              .arg(name, loaderLabel, latest->descriptor()));
+                              .arg(name, loader, latest->descriptor()));
     return true;
 }
 
