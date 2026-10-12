@@ -1,4 +1,4 @@
-[submodule "depends/libnbtplusplus"]
+[submodule "libraries/libnbtplusplus"]
     path = libraries/libnbtplusplus
     url = https://github.com/MultiMC/libnbtplusplus.git
     pushurl = git@github.com:MultiMC/libnbtplusplus.git
