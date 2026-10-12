@@ -7,7 +7,7 @@ IDI_ICON1               ICON    DISCARDABLE     "BerserkMC.ico"
 1 RT_MANIFEST "BerserkMC.manifest"
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION     0,1,0,0
+FILEVERSION     0,7,0,0
 FILEOS          VOS_NT_WINDOWS32
 FILETYPE        VFT_APP
 BEGIN
@@ -17,9 +17,9 @@ BEGIN
                 BEGIN
                         VALUE "CompanyName", "BerserkMC"
                         VALUE "FileDescription", "BerserkMC Launcher"
-                        VALUE "FileVersion", "0.1.0.0"
+                        VALUE "FileVersion", "0.7.0.0"
                         VALUE "ProductName", "BerserkMC"
-                        VALUE "ProductVersion", "0.1"
+                        VALUE "ProductVersion", "0.7"
                 END
         END
         BLOCK "VarFileInfo"

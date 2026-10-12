@@ -608,7 +608,7 @@ Rectangle {
                             Layout.fillWidth: true
                             spacing: 2
                             Text { text: qsTr("Version"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
-                            Text { text: qsTr("BerserkMC 0.1.0 — fork de MultiMC 5"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                            Text { text: qsTr("BerserkMC %1 — fork de MultiMC 5").arg(App.launcherVersion()); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                         }
                         IconButton {
                             variant: "filled"

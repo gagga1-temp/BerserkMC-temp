@@ -80,6 +80,7 @@ public slots:
     QString  browseForJava();   // opens a native file picker, returns path or ""
     void     detectJava();      // scans the system for Java installs (Adoptium/etc.)
     Q_INVOKABLE QString launcherRoot() const; // data folder shown in the settings UI
+    Q_INVOKABLE QString launcherVersion() const; // human-readable version shown in the About section
 
 signals:
     void accountsChanged();

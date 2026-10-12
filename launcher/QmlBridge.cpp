@@ -2,6 +2,7 @@
 #include "QmlBridge.h"
 
 #include "Application.h"
+#include "BuildConfig.h"
 #include "minecraft/auth/AccountList.h"
 #include "minecraft/auth/MinecraftAccount.h"
 #include "InstanceList.h"
@@ -602,6 +603,11 @@ void QmlBridge::openChangelog()
 QString QmlBridge::launcherRoot() const
 {
     return APPLICATION ? APPLICATION->root() : QString();
+}
+
+QString QmlBridge::launcherVersion() const
+{
+    return BuildConfig.printableVersionString();
 }
 
 #include <QFileDialog>
