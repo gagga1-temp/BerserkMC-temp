@@ -22,6 +22,10 @@ Rectangle {
     implicitWidth: row.implicitWidth + (dense ? 16 : 24)
     radius: Theme.radiusMd
 
+    // Item.enabled is inherited; dim disabled buttons so the state is obvious.
+    opacity: enabled ? 1 : 0.45
+    Behavior on opacity { NumberAnimation { duration: Theme.durFast } }
+
     color: {
         if (variant === "primary")
             return hover.containsMouse ? Theme.accent : Theme.accentSoft

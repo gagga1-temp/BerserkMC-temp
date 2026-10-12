@@ -21,15 +21,22 @@ Rectangle {
 
     property int tabIndex: 0  // 0=Vanilla, 1=Modrinth, 2=CurseForge, 3=Import
     property string selectedLoader: "Aucun"
-    property string selectedVersion: "1.21"
-    property string instanceName: "1.21 Vanilla"
+    property string selectedVersion: ""
+    property string instanceName: ""
+
+    // The Create button is only valid once a name and a version are known —
+    // this blocks the old "fires with the default version before load" path.
+    readonly property bool canCreate: tabIndex === 0
+        && instanceName.trim().length > 0
+        && selectedVersion.length > 0
+        && !loadingVersions
 
     ListModel {
         id: tabs
-        ListElement { label: "Vanilla";    icon: "cube" }
-        ListElement { label: "Modrinth";   icon: "pack" }
-        ListElement { label: "CurseForge"; icon: "pack" }
-        ListElement { label: "Importer .zip"; icon: "upload" }
+        ListElement { label: "Vanilla";      icon: "cube";   available: true }
+        ListElement { label: "Modrinth";     icon: "pack";   available: false }
+        ListElement { label: "CurseForge";   icon: "pack";   available: false }
+        ListElement { label: "Importer .zip"; icon: "upload"; available: false }
     }
 
     // Full live version list fetched from Mojang's launchermeta on mount.
@@ -171,9 +178,10 @@ Rectangle {
                             Layout.fillWidth: true
                             implicitHeight: 44
                             radius: Theme.radiusMd
+                            opacity: model.available ? 1 : 0.4
                             color: index === page.tabIndex
                                 ? Theme.accentSoft
-                                : (tabHover.containsMouse ? Theme.bgElevated : "transparent")
+                                : (tabHover.containsMouse && model.available ? Theme.bgElevated : "transparent")
                             border.color: index === page.tabIndex ? Theme.accentRing : "transparent"
                             border.width: 1
                             Behavior on color { ColorAnimation { duration: Theme.durFast } }
@@ -216,8 +224,12 @@ Rectangle {
                                 id: tabHover
                                 anchors.fill: parent
                                 hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
+                                enabled: model.available
+                                cursorShape: model.available ? Qt.PointingHandCursor : Qt.ForbiddenCursor
                                 onClicked: page.tabIndex = index
+                                ToolTip.visible: tabHover.containsMouse && !model.available
+                                ToolTip.text: qsTr("Bientôt disponible dans BerserkMC")
+                                ToolTip.delay: 250
                             }
                         }
                     }
@@ -252,7 +264,7 @@ Rectangle {
                         Text {
                             text: page.tabIndex === 0
                                 ? qsTr("Crée une instance vanilla ou avec un mod loader (Fabric / Forge / Quilt / NeoForge).")
-                                : qsTr("Bientôt — Phase 7 brancher les vraies plateformes via cpp.")
+                                : qsTr("Cette source n'est pas encore disponible dans BerserkMC.")
                             color: Theme.textDim
                             font.family: Theme.fontBody
                             font.pointSize: 10
@@ -293,6 +305,7 @@ Rectangle {
                                     anchors.leftMargin: 14
                                     anchors.rightMargin: 14
                                     text: page.instanceName
+                                    placeholderText: qsTr("Ex. Ma survie")
                                     color: Theme.textPrimary
                                     font.family: Theme.fontBody
                                     font.pointSize: 11
@@ -569,6 +582,7 @@ Rectangle {
                                 variant: "primary"
                                 iconName: "play"
                                 text: qsTr("Créer l'instance")
+                                enabled: page.canCreate
                                 onClicked: page.created(page.instanceName, page.selectedVersion, page.selectedLoader)
                             }
                         }
@@ -582,7 +596,7 @@ Rectangle {
                         Layout.fillWidth: true
                         spacing: 6
                         Text {
-                            text: qsTr("Cette plateforme sera branchée en Phase 7. Pour l'instant, utilise l'onglet Vanilla.")
+                            text: qsTr("Cette source n'est pas encore disponible dans BerserkMC. Utilise l'onglet Vanilla en attendant.")
                             color: Theme.textMuted
                             font.family: Theme.fontBody
                             font.pointSize: 11
