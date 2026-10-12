@@ -1,6 +1,12 @@
 #!/bin/bash
 
-INSTDIR="${XDG_DATA_HOME-$HOME/.local/share}/multimc"
+# NOTE: this Linux wrapper currently downloads and runs the upstream MultiMC
+# build, because BerserkMC has no standalone Linux artifact of its own yet.
+# Only the install location is BerserkMC-branded; the deployed executable is
+# the upstream MultiMC binary. Point PACKAGE at a BerserkMC build once one
+# exists.
+
+INSTDIR="${XDG_DATA_HOME-$HOME/.local/share}/berserkmc"
 
 if [ `getconf LONG_BIT` = "64" ]
 then

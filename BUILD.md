@@ -11,22 +11,28 @@ Build Instructions
 
 # Note
 
-MultiMC is a portable application and is not supposed to be installed into any system folders.
+BerserkMC is a portable application and is not supposed to be installed into any system folders.
 That would be anything outside your home folder. Before running `make install`, make sure
 you set the install path to something you have write access to. Never build this under
 an administrator/root level account. Don't use `sudo`. It won't work and it's not supposed to work.
 Also note that this guide is for development purposes only.
 
+> **BerserkMC is a fork of MultiMC.** The tested toolchain is MSYS2 mingw-w64 + Qt 5.15 +
+> Ninja on Windows (see [README.fork.md](README.fork.md)); the upstream Qt 5.6 / MinGW 32-bit
+> instructions below are kept for reference only and are no longer used.
+
 # Branding, identifying marks and API keys
 
-The MultiMC name is a registered trademark. You may not create binary distributions of this code with changes we do not want associated with the name, or without changing the name and branding to your own.
+The MultiMC name is a registered trademark of the upstream project. BerserkMC is an
+independent, unaffiliated fork with its own branding. You may not create binary
+distributions of this code without changing the name and branding to your own.
 
 # Getting the source
 
 Clone the source code using git and grab all the submodules:
 
 ```
-git clone https://github.com/MultiMC/Launcher.git
+git clone https://github.com/gagga1/BerserkMC.git
 git submodule init
 git submodule update
 ```
@@ -37,7 +43,7 @@ Getting the project to build and run on Linux is easy if you use any modern and 
 
 ## Build dependencies
 * A C++ compiler capable of building C++11 code.
-* Qt 5.6+ Development tools (http://qt-project.org/downloads) ("Qt Online Installer for Linux (64 bit)") or the equivalent from your package manager. It is always better to use the Qt from your distribution, as long as it has a new enough version. (for example, `qttools5-dev`)
+* Qt 5.15+ Development tools (http://qt-project.org/downloads) ("Qt Online Installer for Linux (64 bit)") or the equivalent from your package manager. It is always better to use the Qt from your distribution, as long as it has a new enough version. (for example, `qttools5-dev`)
 * cmake 3.1 or newer
 * zlib (for example, `zlib1g-dev`)
 * Java JDK 8 (for example, `openjdk-8-jdk`)
@@ -46,15 +52,15 @@ Getting the project to build and run on Linux is easy if you use any modern and 
 ### Building from command line
 You need a source folder, a build folder and an install folder.
 
-Let's say you want everything in `~/MultiMC/`:
+Let's say you want everything in `~/BerserkMC/`:
 
 ```
 # make all the folders
-mkdir ~/MultiMC && cd ~/MultiMC
+mkdir ~/BerserkMC && cd ~/BerserkMC
 mkdir build
 mkdir install
 # clone the complete source
-git clone --recursive https://github.com/MultiMC/Launcher.git src
+git clone --recursive https://github.com/gagga1/BerserkMC.git src
 # configure the project
 cd build
 cmake -DCMAKE_INSTALL_PREFIX=../install ../src
@@ -171,12 +177,12 @@ zlib1.dll
 **These build instructions worked for me (Drayshak) on a fresh Windows 8 x64 Professional install. If they don't work for you, let us know on IRC ([Esper/#MultiMC](http://webchat.esper.net/?nick=&channels=MultiMC))!**
 ### Compile from command line on Windows
 1. If you installed Qt with the web installer, there should be a shortcut called `Qt 5.4 for Desktop (MinGW 4.9 32-bit)` in the Start menu on Windows 7 and 10. Best way to find it is to search for it. Do note you cannot just use cmd.exe, you have to use the shortcut, otherwise the proper MinGW software will not be on the PATH.
-2. Once that is open, change into your user directory, and clone MultiMC by doing `git clone --recursive https://github.com/MultiMC/Launcher.git`, and change directory to the folder you cloned to.
+2. Once that is open, change into your user directory, and clone BerserkMC by doing `git clone --recursive https://github.com/gagga1/BerserkMC.git`, and change directory to the folder you cloned to.
 3. Make a build directory, and change directory to the directory and do `cmake -G "MinGW Makefiles" -DCMAKE_INSTALL_PREFIX=C:\Path\that\makes\sense\for\you`. By default, it will install to C:\Program Files (x86), which you might not want, if you want a local installation. If you want to install it to that directory, make sure to run the command window as administrator.
 3. Do `mingw32-make -jX`, where X is the number of cores your CPU has plus one.
 4. Now to wait for it to compile. This could take some time. Hopefully it compiles properly.
-5. Run the command `mingw32-make install`, and it should install MultiMC, to whatever the `-DCMAKE_INSTALL_PREFIX` was.
-6. In most cases, whenever compiling, the OpenSSL dll's aren't put into the directory to where MultiMC installs, meaning you cannot log in. The best way to fix this is just to do `copy C:\OpenSSL-Win32\*.dll C:\Where\you\installed\MultiMC\to`. This should copy the required OpenSSL dll's to log in.
+5. Run the command `mingw32-make install`, and it should install BerserkMC, to whatever the `-DCMAKE_INSTALL_PREFIX` was.
+6. In most cases, whenever compiling, the OpenSSL dll's aren't put into the directory to where BerserkMC installs, meaning you cannot log in. The best way to fix this is just to do `copy C:\OpenSSL-Win32\*.dll C:\Where\you\installed\BerserkMC\to`. This should copy the required OpenSSL dll's to log in.
 
 # macOS
 
@@ -199,7 +205,7 @@ xcode-select --install
 Pick an installation path - this is where the final `.app` will be constructed when you run `make install`. Supply it as the `CMAKE_INSTALL_PREFIX` argument during CMake configuration.
 
 ```
-git clone --recursive https://github.com/MultiMC/Launcher.git
+git clone --recursive https://github.com/gagga1/BerserkMC.git
 cd Launcher
 mkdir build
 cd build

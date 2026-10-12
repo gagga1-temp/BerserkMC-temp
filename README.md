@@ -1,53 +1,75 @@
 <p align="center">
-  <img src="https://avatars2.githubusercontent.com/u/5411890" alt="MultiMC logo"/>
+  <img src="branding/logo.png" alt="BerserkMC logo"/>
 </p>
 
-MultiMC
-=======
+BerserkMC
+=========
 
-MultiMC is a custom launcher for Minecraft that focuses on predictability, long term stability and simplicity.
+BerserkMC is a custom launcher for Minecraft focused on predictability, long
+term stability and simplicity, fork of the MultiMC project.
 
-## Development
-If you want to contribute, talk to us on [Discord](https://discord.gg/multimc) first.
+> **Offline-only fork.** Microsoft ("online") account login is disabled. Every
+> account is a local, offline account identified by a player name only. See
+> [Offline mode](#offline-mode).
 
-While blindly submitting PRs is definitely possible, they're not necessarily going to get accepted.
+This project is an independent fork. It is **not** affiliated with or endorsed
+by the MultiMC project.
 
-We aren't looking for flashy features, but expanding upon the existing feature set without disruption or endangering the future viability of the project is OK.
+## Offline mode
 
-### Building
-If you want to build the launcher yourself, check [BUILD.md](BUILD.md) for build instructions.
+BerserkMC is offline-only by design:
 
-### Code formatting
-Just follow the existing formatting.
+- **Singleplayer / LAN / mods** — works.
+- **Servers with `online-mode=false`** — works. The server accepts the offline
+  UUID derived from the player name.
+- **Servers with `online-mode=true`** (most public servers) — **will not work**.
+  The server asks Mojang's session server to verify the join token; an offline
+  account has no token. This is a server-side check and cannot be worked around
+  from the launcher.
 
-In general, in order of importance:
-* Make sure your IDE is not messing up line endings or whitespace and avoid using linters.
-* Prefer readability over dogma.
-* Keep to the existing formatting.
-* Indent with 4 space unless it's in a submodule.
-* Keep lists (of arguments, parameters, initializers...) as lists, not paragraphs. It should either read from top to bottom, or left to right. Not both.
+Existing Microsoft accounts found in `accounts.json` are converted to offline
+accounts automatically on startup. See [README.fork.md](README.fork.md) for the
+full list of changes and the reasoning behind them.
+
+## Building
+
+Build instructions live in [BUILD.md](BUILD.md). BerserkMC targets Qt 5.15 with
+the QML UI; the tested Windows toolchain is MSYS2 mingw-w64 + Qt 5 + Ninja.
 
 ## Translations
-Translations can be done [on crowdin](https://translate.multimc.org). Please avoid making direct pull requests to the translations repository.
+
+Translations can be contributed via the upstream Crowdin project. Avoid opening
+pull requests that modify the translations repository directly.
 
 ## License
-Copyright &copy; 2013-2022 MultiMC Contributors
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use this program except in compliance with the License. You may obtain a copy of the License at [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0).
+Copyright &copy; 2013-2022 MultiMC Contributors (upstream).
 
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this program except in compliance with the License. You may obtain a copy of the
+License at [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
-## Forking/Redistributing/Custom builds policy
-We keep Launcher open source because we think it's important to be able to see the source code for a project like this, and we do so using the Apache license.
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+See [COPYING.md](COPYING.md) for the full text and third-party notices.
 
-The license gives you access to the source MultiMC is built from, but not:
+## Forking / redistributing / custom builds policy
+
+The upstream project keeps the Launcher open source under the Apache license so
+that the source can be audited. The license gives you access to the source code,
+but not:
+
 - The name, logo and other branding.
-- The API tokens required to talk to services that the launcher depends on.
+- The API tokens required to talk to the services the launcher depends on.
 
-Because of the nature of the agreements required to interact with the Microsoft identity platform, it's impossible for us to continue allowing everyone to build the code as 'MultiMC'. The source code has been debranded and now builds as `DevLauncher` by default.
+Because of the nature of the agreements required to interact with the Microsoft
+identity platform, the upstream source has been debranded and builds as
+`DevLauncher` by default. You must provide your own branding if you want to
+distribute your own builds, and register your own app on Azure to handle
+Microsoft account logins.
 
-You must provide your own branding if you want to distribute your own builds.
-
-You will also have to register your own app on Azure to be able to handle Microsoft account logins.
-
-If you decide to fork the project, a mention of its origins in the About dialog and the license is acceptable. However, it should be abundantly clear that the project is a fork *without* implying that you have our blessing.
+If you fork the project, a mention of its origins in the About dialog and the
+license is acceptable. However, it should be abundantly clear that the project
+is a fork *without* implying any endorsement by the MultiMC project.

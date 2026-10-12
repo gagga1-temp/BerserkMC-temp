@@ -1,4 +1,8 @@
-# MultiMC
+# BerserkMC
+
+BerserkMC is a fork of [MultiMC](https://github.com/MultiMC/Launcher). The
+attribution and license notices below cover the upstream MultiMC project and
+its bundled third-party components.
 
 Portions are licensed under Apache 2.0 License:
 

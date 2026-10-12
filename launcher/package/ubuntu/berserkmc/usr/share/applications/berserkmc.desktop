@@ -1,10 +1,10 @@
 [Desktop Entry]
 Categories=Game;
-Exec=/opt/multimc/run.sh
-Icon=/opt/multimc/icon.svg
+Exec=/opt/berserkmc/run.sh
+Icon=/opt/berserkmc/icon.svg
 Keywords=game;Minecraft;
 MimeType=
-Name=MultiMC 5
+Name=BerserkMC
 Path=
 StartupNotify=true
 Terminal=false
