@@ -56,11 +56,22 @@ Rectangle {
     }
 
     function rebuildInstancesModel() {
-        instancesModel.clear()
+        page.rawInstances = []
         if (typeof App === "undefined") return
-        var list = App.instances
-        for (var i = 0; i < list.length; ++i) {
-            var src = list[i]
+        page.rawInstances = App.instances
+        page.applyInstancesFilter()
+    }
+
+    // Raw (unfiltered) source so the search box can swap the visible list
+    // without re-reading the bridge model.
+    property var rawInstances: []
+
+    function applyInstancesFilter() {
+        instancesModel.clear()
+        var q = search.text.trim().toLowerCase()
+        for (var i = 0; i < rawInstances.length; ++i) {
+            var src = rawInstances[i]
+            if (q.length && src.name.toLowerCase().indexOf(q) < 0) continue
             instancesModel.append({
                 id_:       src.id || "",
                 name:      src.name || "(sans nom)",
@@ -71,6 +82,14 @@ Rectangle {
                 mods:      src.mods || 0
             })
         }
+    }
+
+    function filtered() {
+        return search.text.trim().length > 0
+    }
+
+    function instanceCountLabel() {
+        return qsTr("BIBLIOTHÈQUE · %1 INSTANCES").arg(instancesModel.count)
     }
 
     Component.onCompleted: rebuildInstancesModel()
@@ -128,7 +147,7 @@ Rectangle {
                     RowLayout {
                         Layout.fillWidth: true
                         Text {
-                            text: qsTr("BIBLIOTHÈQUE · %1 INSTANCES").arg(instancesModel.count)
+                            text: page.instanceCountLabel()
                             color: Theme.textDim
                             font.family: Theme.fontBody
                             font.pointSize: 9
@@ -167,6 +186,7 @@ Rectangle {
                                 font.pointSize: 10
                                 background: null
                                 verticalAlignment: TextInput.AlignVCenter
+                                onTextChanged: page.applyInstancesFilter()
                             }
                         }
                     }
@@ -188,7 +208,9 @@ Rectangle {
                         }
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: qsTr("Aucune instance pour l'instant")
+                            text: page.filtered()
+                                ? qsTr("Aucun résultat pour « %1 »").arg(search.text)
+                                : qsTr("Aucune instance pour l'instant")
                             color: Theme.textPrimary
                             font.family: Theme.fontBody
                             font.pointSize: 14
@@ -196,6 +218,7 @@ Rectangle {
                         }
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
+                            visible: !page.filtered()
                             text: qsTr("Crée ta première instance pour commencer à jouer.")
                             color: Theme.textDim
                             font.family: Theme.fontBody
@@ -203,6 +226,7 @@ Rectangle {
                         }
                         IconButton {
                             anchors.horizontalCenter: parent.horizontalCenter
+                            visible: !page.filtered()
                             variant: "primary"
                             iconName: "plus"
                             text: qsTr("Créer une instance")
@@ -250,7 +274,7 @@ Rectangle {
                                         running: typeof App !== "undefined" && App.runningInstances.indexOf(model.id_) >= 0
                                         onClicked: page.selectedIndex = index
                                         onDoubleClicked: {
-                                            if (typeof App !== "undefined") App.launchInstance(model.id_, false)
+                                            if (typeof App !== "undefined") App.launchInstance(model.id_, true)
                                         }
                                     }
                                 }
@@ -279,7 +303,7 @@ Rectangle {
                 instance: {
                     var inst = page.selectedInstance();
                     if (!inst) return { name: qsTr("Aucune sélection"), sub: "—",
-                                        iconSource: "qrc:/icons/multimc/256x256/minecraft.png",
+                                        iconSource: "qrc:/icons/berserkmc/256x256/minecraft.png",
                                         playtime: "—", mods: 0 };
                     return { name: inst.name, sub: inst.mc,
                              iconSource: inst.iconSrc,
@@ -287,7 +311,7 @@ Rectangle {
                 }
                 onPlay: {
                     var id = page.selectedInstanceId()
-                    if (id && typeof App !== "undefined") App.launchInstance(id, false)
+                    if (id && typeof App !== "undefined") App.launchInstance(id, true)
                 }
                 onPlayOffline: {
                     var id = page.selectedInstanceId()

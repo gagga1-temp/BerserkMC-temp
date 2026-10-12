@@ -851,10 +851,10 @@ Application::Application(int &argc, char **argv) : QApplication(argc, argv)
         auto setting = APPLICATION->settings()->getSetting("IconsDir");
         QStringList instFolders =
         {
-            ":/icons/multimc/32x32/instances/",
-            ":/icons/multimc/50x50/instances/",
-            ":/icons/multimc/128x128/instances/",
-            ":/icons/multimc/scalable/instances/"
+            ":/icons/berserkmc/32x32/instances/",
+            ":/icons/berserkmc/50x50/instances/",
+            ":/icons/berserkmc/128x128/instances/",
+            ":/icons/berserkmc/scalable/instances/"
         };
         m_icons.reset(new IconList(instFolders, setting->get().toString()));
         connect(setting.get(), &Setting::SettingChanged,[&](const Setting &, QVariant value)
@@ -1287,6 +1287,9 @@ bool Application::launch(
     }
     else if(instance->canLaunch())
     {
+        // BerserkMC offline-only fork: every launch is forced offline, whatever
+        // the caller requested (QML bridge, ServersPage, WorldListPage, Widgets UI).
+        online = false;
         auto & extras = m_instanceExtras[instance->id()];
         auto & window = extras.window;
         if(window)

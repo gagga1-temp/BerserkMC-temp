@@ -4,7 +4,7 @@
 #include <windows.h>
 
 IDI_ICON1               ICON    DISCARDABLE     "BerserkMC.ico"
-1 RT_MANIFEST "MultiMC.manifest"
+1 RT_MANIFEST "BerserkMC.manifest"
 
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION     0,1,0,0

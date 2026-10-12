@@ -514,6 +514,27 @@ bool AccountList::loadV3(QJsonObject& root) {
         MinecraftAccountPtr account = MinecraftAccount::loadFromJsonV3(accountObj);
         if (account.get() != nullptr)
         {
+            // BerserkMC offline-only fork: any stored Microsoft account is
+            // converted into an offline account, using its profile/gamer name
+            // as the offline player name.
+            if (!account->isOffline())
+            {
+                qWarning() << "Offline-only mode: converting Microsoft account to an offline account.";
+                QString name = account->profileName();
+                if (name.isEmpty())
+                {
+                    name = account->gamerTag();
+                }
+                if (name.isEmpty())
+                {
+                    name = QStringLiteral("Player");
+                }
+                auto offline = MinecraftAccount::createOffline(name);
+                if (offline.get() != nullptr)
+                {
+                    account = offline;
+                }
+            }
             // Note: protection against duplication in the file
             auto xid = account->xid();
             if(xid.size()) {

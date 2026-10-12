@@ -31,18 +31,23 @@ Rectangle {
     }
 
     // Drag region — anything in the bar that isn't a control button starts a
-    // system window drag. MouseArea hierarchy: this one fills the bar, but the
-    // child controls' own MouseAreas (with hoverEnabled) eat the press before
-    // it reaches us.
+    // system window drag (Qt 5.15 startSystemMove). We only trigger after a
+    // small movement threshold so a no-move press still allows double-click to
+    // toggle maximize, and we never hand-move the window (no coordinate leak).
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton
-        property point dragStart
-        onPressed: dragStart = Qt.point(mouseX, mouseY)
+        property point pressPoint
+        property bool   didDrag: false
+        onPressed: { pressPoint = Qt.point(mouseX, mouseY); didDrag = false }
         onPositionChanged: {
-            if (!pressed || !bar.window) return;
-            bar.window.x += mouseX - dragStart.x
-            bar.window.y += mouseY - dragStart.y
+            if (!pressed || didDrag || !bar.window) return;
+            var dx = mouseX - pressPoint.x
+            var dy = mouseY - pressPoint.y
+            if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+                didDrag = true
+                bar.window.startSystemMove()
+            }
         }
         onDoubleClicked: bar.toggleMaximized()
     }

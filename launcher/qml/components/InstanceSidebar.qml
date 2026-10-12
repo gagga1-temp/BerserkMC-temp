@@ -9,11 +9,10 @@ import BerserkMC.Ui 1.0
 
 Rectangle {
     id: side
-    property var instance: ({ name: "—", sub: "—", iconSource: "qrc:/icons/multimc/256x256/minecraft.png", playtime: "—", mods: 0 })
+    property var instance: ({ name: "—", sub: "—", iconSource: "qrc:/icons/berserkmc/256x256/minecraft.png", playtime: "—", mods: 0 })
     property string instanceId: ""
     property bool   isRunning: false
     signal play()
-    signal playOffline()
     signal kill()
     signal openMods()
     signal openWorlds()
@@ -67,7 +66,7 @@ Rectangle {
                 }
                 Image {
                     anchors.centerIn: parent
-                    source: side.instance.iconSource || "qrc:/icons/multimc/256x256/minecraft.png"
+                    source: side.instance.iconSource || "qrc:/icons/berserkmc/256x256/minecraft.png"
                     sourceSize.width: 200; sourceSize.height: 200
                     width: 84; height: 84
                     fillMode: Image.PreserveAspectFit
@@ -156,31 +155,6 @@ Rectangle {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: side.isRunning ? side.kill() : side.play()
-                }
-            }
-            Rectangle {
-                implicitWidth: 52
-                implicitHeight: 52
-                radius: Theme.radiusMd
-                color: offHover.containsMouse ? Theme.bgInputOff : Theme.bgElevated
-                border.color: Theme.borderSubtle
-                border.width: 1
-                Behavior on color { ColorAnimation { duration: Theme.durFast } }
-                Icon {
-                    anchors.centerIn: parent
-                    name: "offline"
-                    color: offHover.containsMouse ? Theme.textPrimary : Theme.textMuted
-                    size: 16
-                }
-                MouseArea {
-                    id: offHover
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: side.playOffline()
-                    ToolTip.text: qsTr("Lancer hors-ligne (sans télécharger)")
-                    ToolTip.visible: containsMouse
-                    ToolTip.delay: 500
                 }
             }
         }

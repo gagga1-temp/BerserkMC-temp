@@ -220,7 +220,7 @@ void LauncherPage::applySettings()
         break;
     case 0:
     default:
-        s->set("IconTheme", "multimc");
+        s->set("IconTheme", "berserkmc");
         break;
     }
 

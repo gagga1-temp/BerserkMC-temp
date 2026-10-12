@@ -123,24 +123,15 @@ void InstanceWindow::updateLaunchButtons()
     if(m_instance->isRunning())
     {
         m_launchOfflineButton->setEnabled(false);
+        m_killButton->setVisible(true);
         m_killButton->setText(tr("Kill"));
         m_killButton->setObjectName("killButton");
         m_killButton->setToolTip(tr("Kill the running instance"));
     }
-    else if(!m_instance->canLaunch())
-    {
-        m_launchOfflineButton->setEnabled(false);
-        m_killButton->setText(tr("Launch"));
-        m_killButton->setObjectName("launchButton");
-        m_killButton->setToolTip(tr("Launch the instance"));
-        m_killButton->setEnabled(false);
-    }
     else
     {
-        m_launchOfflineButton->setEnabled(true);
-        m_killButton->setText(tr("Launch"));
-        m_killButton->setObjectName("launchButton");
-        m_killButton->setToolTip(tr("Launch the instance"));
+        m_launchOfflineButton->setEnabled(m_instance->canLaunch());
+        m_killButton->setVisible(false);
     }
     // NOTE: this is a hack to force the button to recalculate its style
     m_killButton->setStyleSheet("/* */");
@@ -200,10 +191,6 @@ void InstanceWindow::on_btnKillMinecraft_clicked()
     if(m_instance->isRunning())
     {
         APPLICATION->kill(m_instance);
-    }
-    else
-    {
-        APPLICATION->launch(m_instance, true, nullptr);
     }
 }
 

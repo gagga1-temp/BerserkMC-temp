@@ -115,8 +115,6 @@ private slots:
 
     void newsButtonClicked();
 
-    void on_actionLaunchInstance_triggered();
-
     void on_actionLaunchInstanceOffline_triggered();
 
     void on_actionDeleteInstance_triggered();

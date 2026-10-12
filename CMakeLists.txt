@@ -149,8 +149,8 @@ set(Launcher_UserAgent "${Launcher_CommonName}/0.1")
 set(Launcher_ConfigFile "berserkmc.cfg")
 set(Launcher_Git "")
 
-set(Launcher_Branding_ICNS "${PROJECT_SOURCE_DIR}/branding/MultiMC.icns")
-set(Launcher_Branding_WindowsRC "${PROJECT_SOURCE_DIR}/branding/multimc.rc")
+set(Launcher_Branding_ICNS "${PROJECT_SOURCE_DIR}/branding/BerserkMC.icns")
+set(Launcher_Branding_WindowsRC "${PROJECT_SOURCE_DIR}/branding/berserkmc.rc")
 set(Launcher_Branding_LogoQRC "${PROJECT_SOURCE_DIR}/branding/logo.qrc")
 
 set(Launcher_META_URL "https://meta.multimc.org/v1/")
@@ -158,9 +158,9 @@ set(Launcher_PASTE_EE_API_KEY "utLvciUouSURFzfjPxLBf5W4ISsUX4pwBDF7N1AfZ")
 set(Launcher_MSA_CLIENT_ID "499546d9-bbfe-4b9b-a086-eb3d75afb78f")
 set(Launcher_IMGUR_CLIENT_ID "5b97b0713fba4a3")
 set(Launcher_BUG_TRACKER_URL "https://github.com/MultiMC/Launcher/issues")
-set(Launcher_DISCORD_URL "https://discord.gg/multimc")
-set(Launcher_SUBREDDIT_URL "https://www.reddit.com/r/MultiMC/")
-set(Launcher_PATREON_URL "https://www.patreon.com/multimc")
+set(Launcher_DISCORD_URL "https://discord.gg/berserk")
+set(Launcher_SUBREDDIT_URL "https://www.reddit.com/r/berserk/")
+set(Launcher_PATREON_URL "https://www.patreon.com/berserk")
 
 ####################################### Install layout #######################################
 
@@ -197,7 +197,7 @@ if(Launcher_LAYOUT_REAL STREQUAL "mac-bundle")
     # Mac bundle settings
     set(MACOSX_BUNDLE_BUNDLE_NAME "${Launcher_Name}")
     set(MACOSX_BUNDLE_INFO_STRING "${Launcher_Name}:  Minecraft launcher and management utility.")
-    set(MACOSX_BUNDLE_GUI_IDENTIFIER "org.multimc.${Launcher_Name}")
+    set(MACOSX_BUNDLE_GUI_IDENTIFIER "org.berserkmc.${Launcher_Name}")
     set(MACOSX_BUNDLE_BUNDLE_VERSION "${Launcher_VERSION_MAJOR}.${Launcher_VERSION_MINOR}.${Launcher_VERSION_HOTFIX}.${Launcher_VERSION_BUILD}")
     set(MACOSX_BUNDLE_SHORT_VERSION_STRING "${Launcher_VERSION_MAJOR}.${Launcher_VERSION_MINOR}.${Launcher_VERSION_HOTFIX}.${Launcher_VERSION_BUILD}")
     set(MACOSX_BUNDLE_LONG_VERSION_STRING "${Launcher_VERSION_MAJOR}.${Launcher_VERSION_MINOR}.${Launcher_VERSION_HOTFIX}.${Launcher_VERSION_BUILD}")

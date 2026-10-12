@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
     case Application::StartingUp:
     case Application::Initialized:
     {
-        Q_INIT_RESOURCE(multimc);
+        Q_INIT_RESOURCE(berserkmc);
         Q_INIT_RESOURCE(backgrounds);
         Q_INIT_RESOURCE(documents);
         Q_INIT_RESOURCE(logo);

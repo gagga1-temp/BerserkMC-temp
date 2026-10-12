@@ -5,7 +5,7 @@
 #include "icons/IconList.h"
 
 #include <QImage>
-#include <QPixmap>
+#include <QPainter>
 #include <QIcon>
 
 QmlIconProvider::QmlIconProvider()
@@ -19,29 +19,27 @@ QImage QmlIconProvider::requestImage(const QString &id, QSize *size, const QSize
                        ? requestedSize
                        : QSize(128, 128);
 
+    // Render straight into a QImage: requestImage may run off the GUI thread,
+    // and QPixmap is not safe outside the GUI thread. Painting via QIcon keeps
+    // any native scaling without touching QPixmap.
+    QImage img(target, QImage::Format_ARGB32_Premultiplied);
+    img.fill(Qt::transparent);
+
     auto icons = APPLICATION ? APPLICATION->icons() : nullptr;
     QIcon icon;
     if (icons) {
         icon = icons->getIcon(id);
     }
-
-    QPixmap pix;
-    if (!icon.isNull()) {
-        pix = icon.pixmap(target);
-    }
-    if (pix.isNull() && icons) {
+    if (icon.isNull() && icons) {
         // Fall back to the launcher's default Minecraft icon.
         icon = icons->getIcon(QStringLiteral("default"));
-        if (!icon.isNull()) pix = icon.pixmap(target);
     }
-    if (pix.isNull()) {
-        // Last-resort: a transparent placeholder so QML still has a valid image.
-        QImage placeholder(target, QImage::Format_ARGB32_Premultiplied);
-        placeholder.fill(Qt::transparent);
-        if (size) *size = target;
-        return placeholder;
+    if (!icon.isNull()) {
+        QPainter p(&img);
+        img.fill(Qt::transparent);
+        icon.paint(&p, QRect(QPoint(0, 0), target));
     }
 
-    if (size) *size = pix.size();
-    return pix.toImage();
+    if (size) *size = target;
+    return img;
 }

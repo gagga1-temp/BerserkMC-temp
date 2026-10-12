@@ -24,6 +24,7 @@ Rectangle {
     property bool   closeOnLaunch: false
     property bool   showConsoleOnStart: false
     property int    accentIndex: 0
+    property string launcherRoot: ""
     readonly property var accents: [
         { name: "Vert Berserk", hex: "#36c054" },
         { name: "Bleu",         hex: "#3399ff" },
@@ -34,6 +35,17 @@ Rectangle {
 
     // Load persisted values once, before any onChanged handler can fire.
     property bool _ready: false
+    function applyAnimationSpeed() {
+        if (page.animations) {
+            Theme.durFast = 140
+            Theme.durMd   = 220
+            Theme.durSlow = 400
+        } else {
+            Theme.durFast = 0
+            Theme.durMd   = 0
+            Theme.durSlow = 0
+        }
+    }
     Component.onCompleted: {
         if (typeof App !== "undefined") {
             page.javaPath           = App.getSetting("JavaPath", "")
@@ -42,6 +54,9 @@ Rectangle {
                                    || App.getSetting("AutoCloseConsole", false) === "true"
             page.showConsoleOnStart = App.getSetting("ShowConsole", false) === true
                                    || App.getSetting("ShowConsole", false) === "true"
+            page.detectJava         = App.getSetting("DetectJava", true) !== false
+            page.animations         = App.getSetting("Animations", true) !== false
+            page.launcherRoot       = App.launcherRoot()
             // Restore accent
             var savedAccent = App.getSetting("AccentHex", "")
             if (savedAccent && savedAccent.length) {
@@ -52,6 +67,7 @@ Rectangle {
             }
         }
         page._ready = true
+        page.applyAnimationSpeed()
     }
 
     // Persist on every change (debounced just by event coalescing).
@@ -59,6 +75,12 @@ Rectangle {
     onMaxRamChanged:              if (_ready && typeof App !== "undefined") App.setSetting("MaxMemAlloc", Math.round(maxRam))
     onCloseOnLaunchChanged:       if (_ready && typeof App !== "undefined") App.setSetting("AutoCloseConsole", closeOnLaunch)
     onShowConsoleOnStartChanged:  if (_ready && typeof App !== "undefined") App.setSetting("ShowConsole", showConsoleOnStart)
+    onDetectJavaChanged:          if (_ready && typeof App !== "undefined") App.setSetting("DetectJava", detectJava)
+    onAnimationsChanged: {
+        if (!_ready) return
+        page.applyAnimationSpeed()
+        if (typeof App !== "undefined") App.setSetting("Animations", animations)
+    }
     onAccentIndexChanged: {
         if (!_ready) return
         var hex = accents[accentIndex].hex
@@ -602,7 +624,7 @@ Rectangle {
                             Layout.fillWidth: true
                             spacing: 2
                             Text { text: qsTr("Dossier launcher"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
-                            Text { text: qsTr("C:\\Users\\Karim\\Documents\\BerserkLauncher"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                            Text { text: page.launcherRoot || "—"; color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                         }
                         IconButton {
                             variant: "filled"

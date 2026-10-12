@@ -90,9 +90,10 @@ QtObject {
     readonly property int weightHeavy:  800
 
     // ===== Motion =====
-    readonly property int durFast:   140
-    readonly property int durMd:     220
-    readonly property int durSlow:   400
+    // Non-readonly so the Settings "Animations" toggle can zero them at runtime.
+    property int durFast:   140
+    property int durMd:     220
+    property int durSlow:   400
     // Easing alias used by Behaviors throughout
     readonly property int easing:    Easing.OutCubic
 }

@@ -920,14 +920,12 @@ shared_qobject_ptr<LaunchTask> MinecraftInstance::createLaunchTask(AuthSessionPt
         process->appendStep(new ClaimAccount(pptr, session));
     }
 
-    // Asset/library downloads should follow the user's intent (the "Launch Offline"
-    // button sets wants_online=false). An offline-typed account on its first launch
-    // still needs Net::Mode::Online to populate the cache, even though the session
-    // status is PlayableOffline.
-    if(session->wants_online) {
+    // Asset/library downloads should always run: they only hit Mojang's public
+    // CDN/meta endpoints and never need a Microsoft session token. BerserkMC is
+    // offline-only for auth, but downloads must still happen on first launch and
+    // after version changes, or the instance would fail to start.
+    {
         process->appendStep(new Update(pptr, Net::Mode::Online));
-    } else {
-        process->appendStep(new Update(pptr, Net::Mode::Offline));
     }
 
     // if there are any jar mods

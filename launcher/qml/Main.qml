@@ -109,10 +109,6 @@ ApplicationWindow {
                 // StackView swap is driven by App.accountsChanged above so we
                 // don't double-navigate.
             }
-            onMicrosoftLoginRequested: {
-                // Open the existing cpp AccountsDialog for the MSA login flow.
-                if (typeof App !== "undefined") App.showAccountsDialog()
-            }
         }
     }
 

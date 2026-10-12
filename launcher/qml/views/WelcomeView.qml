@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-// First-launch welcome screen. Offline account creation is the primary path;
-// Microsoft login is a discrete opt-in pinned bottom-right.
+// First-launch welcome screen. Offline account creation is the only path
+// (BerserkMC is offline-only — no Microsoft login).
 
 import QtQuick 2.15
 import QtQuick.Controls 2.15
@@ -17,7 +17,6 @@ Rectangle {
     readonly property string viewTitle: "BIENVENUE"
 
     signal offlineAccountCreated(string playerName)
-    signal microsoftLoginRequested()
 
     // Soft accent gradient backdrop (vertical band centered on the logo area)
     Rectangle {
@@ -229,58 +228,6 @@ Rectangle {
                 hoverEnabled: true
                 cursorShape: createBtn.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                 onClicked: createBtn.tryCreate()
-            }
-        }
-    }
-
-    // Microsoft account opt-in — discrete, bottom right
-    Row {
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.rightMargin: 24
-        anchors.bottomMargin: 24
-        spacing: 0
-
-        Rectangle {
-            id: msBtn
-            implicitWidth: msRow.implicitWidth + 28
-            implicitHeight: 38
-            radius: Theme.radiusMd
-            color: msHover.containsMouse ? Theme.bgElevated : "transparent"
-            border.color: msHover.containsMouse ? Theme.borderSubtle : "transparent"
-            border.width: 1
-            Behavior on color        { ColorAnimation { duration: Theme.durFast } }
-            Behavior on border.color { ColorAnimation { duration: Theme.durFast } }
-
-            Row {
-                id: msRow
-                anchors.centerIn: parent
-                spacing: 8
-
-                // Tiny Microsoft 4-square mark
-                Item {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 14; height: 14
-                    Rectangle { width: 6; height: 6; color: "#f25022" }
-                    Rectangle { x: 8; width: 6; height: 6; color: "#7fba00" }
-                    Rectangle { y: 8; width: 6; height: 6; color: "#00a4ef" }
-                    Rectangle { x: 8; y: 8; width: 6; height: 6; color: "#ffb900" }
-                }
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: qsTr("J'ai un compte Microsoft")
-                    color: Theme.textMuted
-                    font.family: Theme.fontBody
-                    font.pointSize: 10
-                }
-            }
-
-            MouseArea {
-                id: msHover
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: page.microsoftLoginRequested()
             }
         }
     }

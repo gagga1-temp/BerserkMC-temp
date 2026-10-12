@@ -28,6 +28,8 @@
 #include <QDebug>
 #include <QFileInfo>
 #include <QDir>
+#include <QUrl>
+#include <QCoreApplication>
 #include <QMessageBox>
 #include <QStandardPaths>
 
@@ -140,14 +142,18 @@ void QmlBridge::connectModels()
     // library can flip Play → Kill on the active card.
     connect(APPLICATION, &Application::instanceLaunchSucceeded, this,
             [this](const QString &id) {
-                emit notification("ok", tr("« %1 » terminé.").arg(id));
+                auto inst = APPLICATION->instances()->getInstanceById(id);
+                QString name = inst ? inst->name() : id;
+                emit notification("ok", tr("« %1 » lancé.").arg(name));
                 if (m_runningInstances.removeAll(id) > 0)
                     emit runningInstancesChanged();
             });
     connect(APPLICATION, &Application::instanceLaunchFailed, this,
             [this](const QString &id, const QString &err) {
+                auto inst = APPLICATION->instances()->getInstanceById(id);
+                QString name = inst ? inst->name() : id;
                 emit notification("error",
-                    tr("Échec du lancement de « %1 » : %2").arg(id, err));
+                    tr("Échec du lancement de « %1 » : %2").arg(name, err));
                 if (m_runningInstances.removeAll(id) > 0)
                     emit runningInstancesChanged();
             });
@@ -188,6 +194,7 @@ void QmlBridge::rebuildAccounts()
         m["gamerTag"]     = acc->gamerTag();
         m["displayName"]  = acc->profileName().isEmpty() ? acc->gamerTag() : acc->profileName();
         m["kind"]         = acc->isOffline() ? QStringLiteral("Offline") : QStringLiteral("Microsoft");
+        m["offlineUuid"]  = acc->profileId();
         m["isDefault"]    = (def && def->internalId() == acc->internalId());
         m["stateText"]    = acc->accountStateText();
         m["ownsMinecraft"]= acc->ownsMinecraft();
@@ -281,12 +288,16 @@ void QmlBridge::removeAccount(const QString &internalId)
 
 void QmlBridge::launchInstance(const QString &instanceId, bool offline)
 {
+    Q_UNUSED(offline)
     auto inst = APPLICATION->instances()->getInstanceById(instanceId);
     if (!inst) {
         emit notification("error", tr("Instance introuvable: %1").arg(instanceId));
         return;
     }
-    bool ok = APPLICATION->launch(inst, !offline, nullptr, nullptr, nullptr, QString());
+    // BerserkMC offline-only fork: the QML "offline" flag is ignored — the
+    // launcher always launches offline (online is enforced dead in
+    // Application::launch / LaunchController::login).
+    bool ok = APPLICATION->launch(inst, false, nullptr, nullptr, nullptr, QString());
     if (ok) {
         emit notification("info", tr("Lancement de « %1 »…").arg(inst->name()));
         if (!m_runningInstances.contains(instanceId)) {
@@ -572,8 +583,25 @@ void QmlBridge::setSetting(const QString &key, const QVariant &value)
 
 void QmlBridge::openChangelog()
 {
-    DesktopServices::openUrl(QUrl::fromLocalFile(
-        QDir(APPLICATION->root()).absoluteFilePath("changelog.md")));
+    // The changelog ships next to the binary (install layout) but a dev build
+    // may not have one there — fall back to the data folder, then give up with
+    // a visible error instead of silently opening a missing file.
+    QStringList candidates = {
+        QDir(QCoreApplication::applicationDirPath()).absoluteFilePath("changelog.md"),
+        QDir(APPLICATION->root()).absoluteFilePath("changelog.md"),
+    };
+    for (const QString &path : candidates) {
+        if (QFileInfo::exists(path)) {
+            DesktopServices::openUrl(QUrl::fromLocalFile(path));
+            return;
+        }
+    }
+    emit notification("error", tr("Changelog introuvable sur cette installation."));
+}
+
+QString QmlBridge::launcherRoot() const
+{
+    return APPLICATION ? APPLICATION->root() : QString();
 }
 
 #include <QFileDialog>

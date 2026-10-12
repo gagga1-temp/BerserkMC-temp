@@ -52,7 +52,7 @@ public slots:
     void setDefaultAccount(const QString &internalId);
     void removeAccount(const QString &internalId);
     void renameOfflineAccount(const QString &internalId, const QString &newName);
-    void showAccountsDialog();         // opens the cpp AccountsDialog (MS login)
+    void showAccountsDialog();         // opens the cpp AccountsDialog (offline-only, MSA login disabled)
 
     // Instance lifecycle
     void launchInstance(const QString &instanceId, bool offline = false);
@@ -79,6 +79,7 @@ public slots:
     void     openChangelog();
     QString  browseForJava();   // opens a native file picker, returns path or ""
     void     detectJava();      // scans the system for Java installs (Adoptium/etc.)
+    Q_INVOKABLE QString launcherRoot() const; // data folder shown in the settings UI
 
 signals:
     void accountsChanged();

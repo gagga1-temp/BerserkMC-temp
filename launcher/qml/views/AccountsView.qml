@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-// Accounts view: left list of accounts, right detail panel. Offline accounts
-// are first-class — the "Add offline" CTA at the bottom of the list is the
-// primary action; Microsoft login is a secondary outlined button.
+// Accounts view: left list of accounts, right detail panel. BerserkMC is
+// offline-only — every account is a local "offline" account, no Microsoft login.
 
 import QtQuick 2.15
 import QtQuick.Controls 2.15
@@ -32,6 +31,7 @@ Rectangle {
                 name:       src.displayName || "(sans nom)",
                 initial:    initial,
                 kind:       src.kind || "Offline",
+                uuid:       src.offlineUuid || "",
                 isDefault:  src.isDefault === true
             })
         }
@@ -459,13 +459,6 @@ Rectangle {
                         text: qsTr("Ajouter compte hors-ligne")
                         onClicked: page.promptOfflineAccount()
                     }
-                    IconButton {
-                        Layout.fillWidth: true
-                        variant: "filled"
-                        iconName: "user"
-                        text: qsTr("Ajouter compte Microsoft")
-                        onClicked: if (typeof App !== "undefined") App.showAccountsDialog()
-                    }
                 }
             }
 
@@ -614,8 +607,8 @@ Rectangle {
                                     spacing: 4
                                     Text { text: qsTr("UUID"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 9; font.letterSpacing: 0.5; font.weight: Font.DemiBold }
                                     Text {
-                                        text: page.current() && page.current().kind === "Offline"
-                                            ? "b9c8d1c1-2f3a-3b1c-9e2d-58e1f5c2a4b6"
+                                        text: page.current()
+                                            ? (page.current().uuid || "—")
                                             : "—"
                                         color: Theme.textPrimary
                                         font.family: Theme.fontMono

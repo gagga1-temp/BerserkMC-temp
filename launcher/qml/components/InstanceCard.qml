@@ -9,7 +9,7 @@ Rectangle {
     id: card
     property string name: ""
     property string sub: ""
-    property string iconSource: "qrc:/icons/multimc/256x256/minecraft.png"
+    property string iconSource: "qrc:/icons/berserkmc/256x256/minecraft.png"
     property bool selected: false
     property bool addTile: false
     property bool running: false
