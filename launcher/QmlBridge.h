@@ -84,7 +84,7 @@ public slots:
     void exportInstance(const QString &instanceId);
     void createShortcut(const QString &instanceId);
     void deleteInstance(const QString &instanceId);
-    bool createVanillaInstance(const QString &name, const QString &version, const QString &loader);
+    Q_INVOKABLE bool createVanillaInstance(const QString &name, const QString &version, const QString &loader);
 
     // Folder shortcuts (kind: "launcher" | "instance:<id>" | "minecraft:<id>" |
     //   "mods:<id>" | "worlds:<id>" | "screenshots:<id>")

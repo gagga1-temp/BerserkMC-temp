@@ -659,6 +659,7 @@ void QmlBridge::deleteInstance(const QString &instanceId)
 
 bool QmlBridge::createVanillaInstance(const QString &name, const QString &version, const QString &loader)
 {
+    emit notification("info", tr("Création de « %1 »…").arg(name));
     if (name.trimmed().isEmpty() || version.trimmed().isEmpty()) {
         emit notification("error", tr("Nom ou version manquant."));
         return false;
