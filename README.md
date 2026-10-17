@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="branding/logo.png" alt="BerserkMC logo"/>
+  <img src="branding/logo.png" alt="BerserkMC logo" width="200"/>
 </p>
 
 BerserkMC
