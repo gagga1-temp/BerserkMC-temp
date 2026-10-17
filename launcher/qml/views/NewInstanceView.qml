@@ -37,9 +37,9 @@ Rectangle {
     ListModel {
         id: tabs
         ListElement { label: "Vanilla";      icon: "cube";   available: true }
-        ListElement { label: "Modrinth";     icon: "pack";   available: false }
-        ListElement { label: "CurseForge";   icon: "pack";   available: false }
-        ListElement { label: "Importer .zip"; icon: "upload"; available: false }
+        ListElement { label: "Modrinth";     icon: "pack";   available: true }
+        ListElement { label: "CurseForge";   icon: "pack";   available: true }
+        ListElement { label: "Importer";     icon: "upload"; available: true }
     }
 
     // Version list comes from the cpp meta index (App.minecraftVersions()) —
@@ -602,20 +602,83 @@ Rectangle {
                         }
                     }
 
-                    // Stub body for non-vanilla tabs
+                    // Import form for non-vanilla tabs (Modrinth / CurseForge / local file).
                     Column {
                         visible: page.tabIndex !== 0
                         Layout.leftMargin: 36
                         Layout.rightMargin: 36
                         Layout.fillWidth: true
-                        spacing: 6
+                        spacing: 12
                         Text {
-                            text: qsTr("Cette source n'est pas encore disponible dans BerserkMC. Utilise l'onglet Vanilla en attendant.")
-                            color: Theme.textMuted
+                            text: page.tabIndex === 1 ? qsTr("Importer un modpack Modrinth (URL ou fichier .mrpack)")
+                                 : page.tabIndex === 2 ? qsTr("Importer un modpack CurseForge (URL ou fichier .zip)")
+                                 : qsTr("Importer un modpack (URL ou fichier .zip/.mrpack)")
+                            color: Theme.textPrimary
                             font.family: Theme.fontBody
-                            font.pointSize: 11
+                            font.pointSize: 12
+                            font.weight: Font.DemiBold
                             wrapMode: Text.WordWrap
                             width: parent.width
+                        }
+                        Text {
+                            text: qsTr("Colle un lien Modrinth/CurseForge ou choisis un fichier local.")
+                            color: Theme.textMuted
+                            font.family: Theme.fontBody
+                            font.pointSize: 10
+                            wrapMode: Text.WordWrap
+                            width: parent.width
+                        }
+                        Row {
+                            width: parent.width
+                            spacing: 8
+                            Rectangle {
+                                width: parent.width - 100
+                                height: 40
+                                radius: Theme.radiusMd
+                                color: Theme.bgInput
+                                border.color: importSource.activeFocus ? Theme.accentRing : Theme.borderSubtle
+                                border.width: 1
+                                TextField {
+                                    id: importSource
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 14
+                                    anchors.rightMargin: 14
+                                    placeholderText: qsTr("https://modrinth.com/modpack/... ou chemin local")
+                                    color: Theme.textPrimary
+                                    font.family: Theme.fontBody
+                                    font.pointSize: 11
+                                    background: null
+                                    verticalAlignment: TextInput.AlignVCenter
+                                }
+                            }
+                            IconButton {
+                                text: qsTr("Parcourir")
+                                variant: "filled"
+                                onClicked: {
+                                    var p = App.pickImportFile()
+                                    if (p && p.length > 0) importSource.text = p
+                                }
+                            }
+                        }
+                        Row {
+                            Layout.alignment: Qt.AlignRight
+                            spacing: 8
+                            IconButton {
+                                variant: "ghost"
+                                text: qsTr("Annuler")
+                                onClicked: page.back()
+                            }
+                            IconButton {
+                                variant: "primary"
+                                iconName: "upload"
+                                text: qsTr("Importer")
+                                enabled: importSource.text.trim().length > 0
+                                onClicked: {
+                                    if (typeof App !== "undefined")
+                                        App.importInstance(importSource.text.trim())
+                                    page.back()
+                                }
+                            }
                         }
                     }
 

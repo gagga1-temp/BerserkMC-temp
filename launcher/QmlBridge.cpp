@@ -9,6 +9,7 @@
 #include "BaseInstance.h"
 #include "BaseVersionList.h"
 #include "InstanceCreationTask.h"
+#include "InstanceImportTask.h"
 #include "minecraft/MinecraftInstance.h"
 #include "meta/Index.h"
 #include "meta/VersionList.h"
@@ -862,6 +863,60 @@ bool QmlBridge::loaderAvailable(const QString &mcVersion, const QString &loader)
         if (parent.isEmpty() || parent == mcVersion) return true;
     }
     return false;
+}
+
+QString QmlBridge::pickImportFile()
+{
+    return QFileDialog::getOpenFileName(nullptr, tr("Choisir un modpack"), QString(), tr("Modpacks (*.zip *.mrpack);;Tous les fichiers (*)"));
+}
+
+bool QmlBridge::importInstance(const QString &source)
+{
+    if (source.trimmed().isEmpty()) {
+        emit notification("error", tr("Source manquante (URL ou fichier)."));
+        return false;
+    }
+    auto il = APPLICATION ? APPLICATION->instances() : nullptr;
+    if (!il) {
+        emit notification("error", tr("Liste d'instances indisponible."));
+        return false;
+    }
+
+    QUrl url(source.trimmed());
+    if (url.isLocalFile() == false && !url.isRelative() && url.scheme().isEmpty()) {
+        // treat as local path
+        url = QUrl::fromLocalFile(source.trimmed());
+    }
+    if (url.isLocalFile() == false && url.scheme().isEmpty()) {
+        url = QUrl::fromLocalFile(source.trimmed());
+    }
+
+    auto task = new InstanceImportTask(url);
+    QSet<QString> idsBefore;
+    for (int i = 0; i < il->rowCount(QModelIndex()); ++i) {
+        if (auto inst = il->at(i)) idsBefore.insert(inst->id());
+    }
+
+    unique_qobject_ptr<Task> wrapped(il->wrapInstanceTask(task));
+    ProgressDialog dlg(nullptr);
+    emit notification("info", tr("Import en cours…"));
+    int rc = dlg.execWithTask(wrapped.get());
+    if (rc != QDialog::Accepted) {
+        emit notification("error", tr("Import annulé ou échoué."));
+        return false;
+    }
+
+    InstancePtr created;
+    for (int i = 0; i < il->rowCount(QModelIndex()); ++i) {
+        auto inst = il->at(i);
+        if (inst && !idsBefore.contains(inst->id())) { created = inst; break; }
+    }
+    if (created) {
+        emit notification("ok", tr("Instance « %1 » importée.").arg(created->name()));
+    } else {
+        emit notification("ok", tr("Import terminé."));
+    }
+    return true;
 }
 
 void QmlBridge::openFolder(const QString &kind)

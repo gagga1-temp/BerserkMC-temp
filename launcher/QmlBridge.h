@@ -86,6 +86,8 @@ public slots:
     void deleteInstance(const QString &instanceId);
     Q_INVOKABLE bool createVanillaInstance(const QString &name, const QString &version, const QString &loader);
     Q_INVOKABLE bool loaderAvailable(const QString &mcVersion, const QString &loader);
+    Q_INVOKABLE bool importInstance(const QString &source);
+    Q_INVOKABLE QString pickImportFile();
 
     // Folder shortcuts (kind: "launcher" | "instance:<id>" | "minecraft:<id>" |
     //   "mods:<id>" | "worlds:<id>" | "screenshots:<id>")
