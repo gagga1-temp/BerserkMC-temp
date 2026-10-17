@@ -876,9 +876,9 @@ void QmlBridge::openChangelog()
 void QmlBridge::checkForUpdates()
 {
     // L'auto-updater (projet BerserkMCUpdater) vit a cote du launcher. Le bouton
-    // manuel lance Updater.exe --check : code 10 = une mise a jour existe, on
-    // lance alors l'installation detachee puis on quitte pour liberer les
-    // fichiers. L'updater resout lui-meme l'URL du dernier release GitHub.
+    // manuel lance Updater.exe sans argument : code 10 = une mise a jour existe,
+    // on le relance alors avec notre PID, on quitte pour liberer les fichiers et
+    // l'updater installe puis redemarre. Il connait deja le depot BerserkMC.
     const QString updater = QDir(QCoreApplication::applicationDirPath()).absoluteFilePath("Updater.exe");
     if (!QFileInfo::exists(updater)) {
         emit notification("error", tr("Auto-update indisponible : Updater.exe introuvable à côté du launcher."));
@@ -931,7 +931,7 @@ void QmlBridge::checkForUpdates()
     });
 
     emit notification("info", tr("Recherche de mises à jour…"));
-    m_updateCheck->start(updater, { "--check", "--quiet" });
+    m_updateCheck->start(updater, QStringList());
 }
 
 QString QmlBridge::launcherRoot() const

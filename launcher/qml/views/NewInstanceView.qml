@@ -68,7 +68,6 @@ Rectangle {
             if (keep) {
                 versions.append({
                     id_: v.id_,
-                    age: v.age,
                     badge: v.id_ === page.latestRelease ? "LATEST"
                          : v.id_ === page.latestSnapshot ? "SNAPSHOT"
                          : v.type.replace("_", " ").toUpperCase(),
@@ -102,19 +101,6 @@ Rectangle {
         if (nameInput) nameInput.text = n
     }
 
-    function humanizeAge(ms) {
-        if (!ms || ms <= 0) return ""
-        var then = Number(ms)
-        if (isNaN(then)) return ""
-        var diff = (Date.now() - then) / 1000
-        if (diff < 60)            return "à l'instant"
-        if (diff < 3600)          return Math.floor(diff / 60) + " min"
-        if (diff < 86400)         return Math.floor(diff / 3600) + " h"
-        if (diff < 86400 * 30)    return "il y a " + Math.floor(diff / 86400) + " j"
-        if (diff < 86400 * 365)   return "il y a " + Math.floor(diff / 86400 / 30) + " mois"
-        return "il y a " + Math.floor(diff / 86400 / 365) + " ans"
-    }
-
     function refreshVersions() {
         if (typeof App === "undefined") return
         page.loadingVersions = App.minecraftVersionsLoading()
@@ -131,7 +117,6 @@ Rectangle {
             allVersions.append({
                 id_: v.id,
                 type: v.type,                 // release | snapshot | old_beta | old_alpha
-                age:  humanizeAge(t),
                 releaseTime: t
             })
         }
@@ -559,12 +544,6 @@ Rectangle {
                                                 font.weight: Font.DemiBold
                                             }
                                             Item { Layout.fillWidth: true }
-                                            Text {
-                                                text: model.age
-                                                color: Theme.textDim
-                                                font.family: Theme.fontBody
-                                                font.pointSize: 10
-                                            }
                                             Rectangle {
                                                 radius: 4
                                                 implicitHeight: 16
