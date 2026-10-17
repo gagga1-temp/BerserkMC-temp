@@ -149,11 +149,24 @@ QByteArray MinecraftAccount::getSkin() const
     return data.minecraftProfile.skin.data;
 }
 
+QString MinecraftAccount::getSkinKey() const
+{
+    return data.minecraftProfile.skin.id;
+}
+
 Skins::Model MinecraftAccount::getSkinModel() const
 {
     if(data.minecraftProfile.skin.variant == "CLASSIC")
         return Skins::Model::Classic;
     return Skins::Model::Slim;
+}
+
+void MinecraftAccount::setOfflineSkin(const QString& skinKey, bool slim, const QByteArray& texture)
+{
+    data.minecraftProfile.skin.id = skinKey;
+    data.minecraftProfile.skin.variant = slim ? QStringLiteral("SLIM") : QStringLiteral("CLASSIC");
+    data.minecraftProfile.skin.data = texture;
+    emit changed();
 }
 
 QPixmap MinecraftAccount::getFace() const {

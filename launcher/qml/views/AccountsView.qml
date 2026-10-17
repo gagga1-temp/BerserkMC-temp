@@ -32,26 +32,62 @@ Rectangle {
                 initial:    initial,
                 kind:       src.kind || "Offline",
                 uuid:       src.offlineUuid || "",
-                isDefault:  src.isDefault === true
+                isDefault:  src.isDefault === true,
+                skinKey:    src.skinKey || "",
+                skinVariant:src.skinVariant || "classic",
+                hasSkin:    src.hasSkin === true
             })
         }
+        // There is no separate "default" concept in the UI: the selected account
+        // is the active one, so keep the highlight on the active account.
+        for (var j = 0; j < accounts.count; ++j) {
+            if (accounts.get(j).isDefault) { page.selectedIndex = j; break }
+        }
         if (page.selectedIndex >= accounts.count) page.selectedIndex = Math.max(0, accounts.count - 1)
+        page.syncDetailSkin()
+    }
+
+    // Head preview URL for an account (served by the cpp "skins" provider).
+    function avatarFor(internalId, hasSkin) {
+        return hasSkin ? ("image://skins/account/" + internalId + "?v=" + internalId) : ""
+    }
+
+    // Keep the detail skin picker in sync with the selected account.
+    function syncDetailSkin() {
+        var c = current()
+        detailSkin.selectedKey = c ? (c.skinKey || "") : ""
+        detailSkin.selectedVariant = c ? (c.skinVariant || "classic") : "classic"
     }
 
     Component.onCompleted: rebuildAccountsModel()
+
     Connections {
         target: typeof App !== "undefined" ? App : null
         function onAccountsChanged() { page.rebuildAccountsModel() }
     }
 
     property int selectedIndex: 0
-    function current() { return accounts.count > 0 ? accounts.get(selectedIndex) : null }
+    function current() {
+        if (selectedIndex < 0 || selectedIndex >= accounts.count) return null
+        return accounts.get(selectedIndex)
+    }
     function currentId() { return current() ? current().internalId : "" }
+    // Always a real bool (avoids "Unable to assign [undefined] to bool" while
+    // the ListModel is being rebuilt).
+    function currentIsOffline() { var c = current(); return !!c && c.kind === "Offline" }
 
     function makeDefault(i) {
         if (i < 0 || i >= accounts.count) return
         var id = accounts.get(i).internalId
         if (typeof App !== "undefined") App.setDefaultAccount(id)
+    }
+    // Clicking a row both selects it (shows its detail on the right) and makes
+    // it the active account used for launching — i.e. "choose this profile".
+    function selectAccount(i) {
+        if (i < 0 || i >= accounts.count) return
+        selectedIndex = i
+        if (!accounts.get(i).isDefault) makeDefault(i)
+        syncDetailSkin()
     }
     function remove(i) {
         if (i < 0 || i >= accounts.count) return
@@ -61,6 +97,9 @@ Rectangle {
 
     function promptOfflineAccount() {
         addOfflinePopup.nameInput.text = ""
+        // Default the new profile to a system skin so it has a face right away.
+        createSkinPicker.selectedKey = "Steve"
+        createSkinPicker.selectedVariant = "classic"
         addOfflinePopup.open()
     }
 
@@ -142,7 +181,7 @@ Rectangle {
         focus: true
         anchors.centerIn: Overlay.overlay
         implicitWidth: 420
-        implicitHeight: 280
+        implicitHeight: 430
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
 
         background: Rectangle {
@@ -231,6 +270,14 @@ Rectangle {
                 }
             }
 
+            // Offline profile: only the bundled system skins are offered.
+            SkinPicker {
+                id: createSkinPicker
+                Layout.fillWidth: true
+                showNone: true
+                systemOnly: true
+            }
+
             Item { Layout.fillHeight: true }
 
             Row {
@@ -251,7 +298,10 @@ Rectangle {
                     opacity: enabled ? 1 : 0.5
                     function tryCreate() {
                         if (nameField.text.length < 3) return
-                        if (typeof App !== "undefined") App.createOfflineAccount(nameField.text)
+                        if (typeof App !== "undefined")
+                            App.createOfflineAccount(nameField.text,
+                                                     createSkinPicker.selectedKey,
+                                                     createSkinPicker.selectedVariant)
                         addOfflinePopup.close()
                     }
                     onClicked: tryCreate()
@@ -338,112 +388,88 @@ Rectangle {
                         }
                     }
 
-                    ScrollView {
+                    ListView {
+                        id: accountList
                         Layout.fillWidth: true
+                        Layout.minimumWidth: 0
                         Layout.fillHeight: true
                         clip: true
+                        spacing: 4
                         visible: accounts.count > 0
+                        boundsBehavior: Flickable.StopAtBounds
+                        model: accounts
 
-                        ColumnLayout {
-                            width: parent.parent.availableWidth
-                            spacing: 4
+                        delegate: Rectangle {
+                            width: accountList.width
+                            height: 58
+                            radius: Theme.radiusMd
+                            color: index === page.selectedIndex
+                                ? Theme.accentSoft
+                                : (rowHover.containsMouse ? Theme.bgElevated : "transparent")
+                            border.color: index === page.selectedIndex ? Theme.accentRing : "transparent"
+                            border.width: 1
+                            Behavior on color { ColorAnimation { duration: Theme.durFast } }
 
-                            Repeater {
-                                model: accounts
-                                delegate: Rectangle {
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.margins: 10
+                                spacing: 10
+
+                                // Avatar (skin head when assigned, else initial)
+                                SkinAvatar {
+                                    implicitWidth: 36; implicitHeight: 36
+                                    hasSkin: model.hasSkin
+                                    source: page.avatarFor(model.internalId, model.hasSkin)
+                                    fallbackText: model.initial
+                                    fallbackBg: model.kind === "Offline"
+                                        ? (index === page.selectedIndex ? Theme.accent : Theme.bgElevated)
+                                        : Qt.rgba(0.13, 0.45, 0.93, 0.20)
+                                    fallbackColor: model.kind === "Offline"
+                                        ? (index === page.selectedIndex ? "white" : Theme.textPrimary)
+                                        : "#7ab1ff"
+                                }
+
+                                Column {
                                     Layout.fillWidth: true
-                                    implicitHeight: 58
-                                    radius: Theme.radiusMd
-                                    color: index === page.selectedIndex
-                                        ? Theme.accentSoft
-                                        : (rowHover.containsMouse ? Theme.bgElevated : "transparent")
-                                    border.color: index === page.selectedIndex ? Theme.accentRing : "transparent"
-                                    border.width: 1
-                                    Behavior on color { ColorAnimation { duration: Theme.durFast } }
-
-                                    RowLayout {
-                                        anchors.fill: parent
-                                        anchors.margins: 10
-                                        spacing: 10
-
-                                        // Avatar
+                                    spacing: 2
+                                    Text {
+                                        width: parent.width
+                                        text: model.name
+                                        color: Theme.textPrimary
+                                        font.family: Theme.fontBody
+                                        font.pointSize: 11
+                                        font.weight: Font.DemiBold
+                                        elide: Text.ElideRight
+                                    }
+                                    Row {
+                                        spacing: 4
                                         Rectangle {
-                                            implicitWidth: 36; implicitHeight: 36
-                                            radius: 8
-                                            color: index === page.selectedIndex && model.kind === "Offline"
-                                                ? Theme.accent
-                                                : (model.kind === "Offline" ? Theme.bgElevated : Qt.rgba(0.13, 0.45, 0.93, 0.20))
+                                            radius: 4
+                                            implicitHeight: 16
+                                            implicitWidth: kbadge.implicitWidth + 10
+                                            color: model.kind === "Offline"
+                                                ? Theme.accentSoft
+                                                : Qt.rgba(0.13, 0.45, 0.93, 0.18)
                                             Text {
+                                                id: kbadge
                                                 anchors.centerIn: parent
-                                                text: model.initial
-                                                color: index === page.selectedIndex && model.kind === "Offline"
-                                                    ? "white"
-                                                    : (model.kind === "Offline" ? Theme.textPrimary : "#7ab1ff")
+                                                text: model.kind.toUpperCase()
+                                                color: model.kind === "Offline" ? Theme.accentStrong : "#7ab1ff"
                                                 font.family: Theme.fontBody
-                                                font.pointSize: 12
+                                                font.pointSize: 8
                                                 font.weight: Font.Bold
                                             }
                                         }
-
-                                        Column {
-                                            Layout.fillWidth: true
-                                            spacing: 2
-                                            Text {
-                                                width: parent.width
-                                                text: model.name
-                                                color: Theme.textPrimary
-                                                font.family: Theme.fontBody
-                                                font.pointSize: 11
-                                                font.weight: Font.DemiBold
-                                                elide: Text.ElideRight
-                                            }
-                                            Row {
-                                                spacing: 4
-                                                Rectangle {
-                                                    radius: 4
-                                                    implicitHeight: 16
-                                                    implicitWidth: kbadge.implicitWidth + 10
-                                                    color: model.kind === "Offline"
-                                                        ? Theme.accentSoft
-                                                        : Qt.rgba(0.13, 0.45, 0.93, 0.18)
-                                                    Text {
-                                                        id: kbadge
-                                                        anchors.centerIn: parent
-                                                        text: model.kind.toUpperCase()
-                                                        color: model.kind === "Offline" ? Theme.accentStrong : "#7ab1ff"
-                                                        font.family: Theme.fontBody
-                                                        font.pointSize: 8
-                                                        font.weight: Font.Bold
-                                                    }
-                                                }
-                                                Rectangle {
-                                                    radius: 4
-                                                    visible: model.isDefault
-                                                    implicitHeight: 16
-                                                    implicitWidth: defLbl.implicitWidth + 10
-                                                    color: Theme.bgInput
-                                                    Text {
-                                                        id: defLbl
-                                                        anchors.centerIn: parent
-                                                        text: qsTr("DÉFAUT")
-                                                        color: Theme.textMuted
-                                                        font.family: Theme.fontBody
-                                                        font.pointSize: 8
-                                                        font.weight: Font.Bold
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        id: rowHover
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: page.selectedIndex = index
                                     }
                                 }
+                            }
+
+                            MouseArea {
+                                id: rowHover
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: page.selectAccount(index)
                             }
                         }
                     }
@@ -464,17 +490,19 @@ Rectangle {
 
             // ----- Right detail -----
             ScrollView {
+                id: detailScroll
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
 
                 ColumnLayout {
-                    width: parent.parent.availableWidth
+                    width: detailScroll.availableWidth
                     spacing: 22
                     Item { implicitHeight: 4 }
 
                     // Hero
                     RowLayout {
+                        Layout.fillWidth: true
                         Layout.leftMargin: 32
                         Layout.rightMargin: 32
                         spacing: 22
@@ -491,22 +519,17 @@ Rectangle {
                                     : Qt.rgba(0.13, 0.45, 0.93, 0.14)
                                 opacity: 0.9
                             }
-                            Rectangle {
+                            SkinAvatar {
                                 anchors.fill: parent
-                                radius: Theme.radiusLg
-                                color: Theme.bgElevated
-                                border.color: Theme.borderSubtle
-                                border.width: 1
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: page.current() ? page.current().initial : ""
-                                    color: page.current() && page.current().kind === "Offline"
-                                        ? Theme.accentStrong
-                                        : "#7ab1ff"
-                                    font.family: Theme.fontBody
-                                    font.pointSize: 42
-                                    font.weight: Font.Bold
-                                }
+                                hasSkin: page.current() ? page.current().hasSkin : false
+                                source: page.current()
+                                    ? page.avatarFor(page.current().internalId, page.current().hasSkin)
+                                    : ""
+                                fallbackText: page.current() ? page.current().initial : ""
+                                fallbackColor: page.current() && page.current().kind === "Offline"
+                                    ? Theme.accentStrong
+                                    : "#7ab1ff"
+                                fallbackBg: Theme.bgElevated
                             }
                         }
 
@@ -549,14 +572,6 @@ Rectangle {
                                     font.pointSize: 10
                                 }
                             }
-                        }
-
-                        // Star — make default
-                        IconButton {
-                            iconName: "star"
-                            variant: page.current() && page.current().isDefault ? "primary" : "filled"
-                            text: page.current() && page.current().isDefault ? qsTr("Défaut") : qsTr("Par défaut")
-                            onClicked: page.makeDefault(page.selectedIndex)
                         }
                     }
 
@@ -627,7 +642,7 @@ Rectangle {
                         Layout.rightMargin: 32
                         Layout.fillWidth: true
                         spacing: 8
-                        visible: page.current() && page.current().kind === "Offline"
+                        visible: page.currentIsOffline()
 
                         Text {
                             text: qsTr("À SAVOIR")
@@ -658,6 +673,50 @@ Rectangle {
                         }
                     }
 
+                    // Skin — offline profiles are limited to the bundled system
+                    // skins; imported skins are reserved for online profiles.
+                    Column {
+                        Layout.leftMargin: 32
+                        Layout.rightMargin: 32
+                        Layout.fillWidth: true
+                        spacing: 8
+
+                        Text {
+                            text: qsTr("SKIN")
+                            color: Theme.textDim
+                            font.family: Theme.fontBody
+                            font.pointSize: 9
+                            font.letterSpacing: 1
+                            font.weight: Font.DemiBold
+                        }
+
+                        Text {
+                            visible: page.currentIsOffline()
+                            width: parent.width
+                            text: qsTr("Compte hors-ligne : seuls les skins système sont disponibles. Les skins importés sont réservés aux comptes en ligne.")
+                            color: Theme.textMuted
+                            font.family: Theme.fontBody
+                            font.pointSize: 10
+                            wrapMode: Text.WordWrap
+                            textFormat: Text.PlainText
+                        }
+
+                        SkinPicker {
+                            id: detailSkin
+                            width: parent.width
+                            showNone: true
+                            systemOnly: page.currentIsOffline()
+                            onPicked: function(key, variant) {
+                                var c = page.current()
+                                if (!c || typeof App === "undefined") return
+                                if (key.length === 0)
+                                    App.clearAccountSkin(c.internalId)
+                                else
+                                    App.setAccountSkin(c.internalId, key, variant)
+                            }
+                        }
+                    }
+
                     // Actions
                     Column {
                         Layout.leftMargin: 32
@@ -681,7 +740,7 @@ Rectangle {
                                 variant: "filled"
                                 iconName: "pencil"
                                 text: qsTr("Renommer")
-                                enabled: page.current() && page.current().kind === "Offline"
+                                enabled: page.currentIsOffline()
                                 opacity: enabled ? 1 : 0.4
                                 onClicked: {
                                     var c = page.current()

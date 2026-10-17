@@ -25,9 +25,11 @@ Rectangle {
     signal shortcutRequested()
     signal deleteRequested()
 
-    // Mode d'affichage selon la hauteur réellement disponible
-    readonly property bool compact: height < 640
-    readonly property bool tight:   height < 520
+    // Mode d'affichage selon la place réellement disponible : la hauteur, mais
+    // aussi la largeur, car le panneau est redimensionnable par l'utilisateur.
+    readonly property bool narrow:  width < 240
+    readonly property bool compact: height < 640 || width < 320
+    readonly property bool tight:   height < 520 || width < 220
     readonly property int  pad:      tight ? 12 : (compact ? 16 : 24)
     readonly property int  gap:      tight ? 8  : (compact ? 12 : 16)
     readonly property int  heroSize: tight ? 56 : (compact ? 84 : 112)
@@ -57,7 +59,7 @@ Rectangle {
 
         // ===== Hero =====
         Column {
-            Layout.alignment: Qt.AlignHCenter
+            Layout.fillWidth: true
             spacing: side.gap
 
             // Icon tile with a subtle accent backdrop for visual weight.
@@ -92,20 +94,24 @@ Rectangle {
             }
 
             Text {
-                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width
                 text: side.instance.name
                 color: Theme.textPrimary
                 font.family: Theme.fontBody
                 font.pointSize: side.tight ? 12 : 15
                 font.weight: Font.Bold
                 font.letterSpacing: -0.2
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
             }
             Text {
-                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width
                 text: side.instance.sub
                 color: Theme.textDim
                 font.family: Theme.fontBody
                 font.pointSize: side.tight ? 8 : 9
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
             }
         }
 
@@ -177,12 +183,13 @@ Rectangle {
         }
 
         // ===== Stats =====
-        Row {
+        RowLayout {
             Layout.fillWidth: true
             visible: !side.tight      // an invisible item is ignored by the layout
             spacing: 6
             Rectangle {
-                width: (parent.width - 6) / 2; height: 56
+                Layout.fillWidth: true
+                implicitHeight: 56
                 radius: Theme.radiusMd
                 color: Theme.bgElevated
                 border.color: Theme.borderSubtle
@@ -208,7 +215,8 @@ Rectangle {
                 }
             }
             Rectangle {
-                width: (parent.width - 6) / 2; height: 56
+                Layout.fillWidth: true
+                implicitHeight: 56
                 radius: Theme.radiusMd
                 color: Theme.bgElevated
                 border.color: Theme.borderSubtle
@@ -238,7 +246,7 @@ Rectangle {
         // ===== Actions grid =====
         GridLayout {
             Layout.fillWidth: true
-            columns: 2
+            columns: side.narrow ? 1 : 2
             columnSpacing: 6
             rowSpacing: 6
 
@@ -280,7 +288,7 @@ Rectangle {
                     id: more
                     Layout.fillWidth: true
                     visible: morePane.moreOpen
-                    columns: 2
+                    columns: side.narrow ? 1 : 2
                     columnSpacing: 0
                     rowSpacing: 0
                     IconButton { Layout.fillWidth: true; variant: "ghost";  iconName: "camera"; text: qsTr("Screenshots"); onClicked: side.openScreenshots() }

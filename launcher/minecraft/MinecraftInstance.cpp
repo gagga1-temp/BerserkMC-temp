@@ -836,22 +836,22 @@ QString MinecraftInstance::getStatusbarDescription()
     }
 
     QString description;
-    description.append(tr("Minecraft %1 (%2)").arg(m_components->getComponentVersion("net.minecraft")).arg(typeName()));
+    description.append(tr("%1 %2").arg(m_components->getComponentVersion("net.minecraft")).arg(typeName()));
     if(m_settings->get("ShowGameTime").toBool())
     {
         if (lastTimePlayed() > 0) {
             if (APPLICATION->settings()->get("ShowGameTimeHours").toBool()) {
-                description.append(tr(", last played for %1 hours").arg(Time::prettifyDurationHours(lastTimePlayed())));
+                description.append(tr("\nlast played for %1 hours").arg(Time::prettifyDurationHours(lastTimePlayed())));
             } else {
-                description.append(tr(", last played for %1").arg(Time::prettifyDuration(lastTimePlayed())));
+                description.append(tr("\nlast played for %1").arg(Time::prettifyDuration(lastTimePlayed())));
             }
         }
 
         if (totalTimePlayed() > 0) {
             if (APPLICATION->settings()->get("ShowGameTimeHours").toBool()) {
-                description.append(tr(", total played for %1 hours").arg(Time::prettifyDurationHours(totalTimePlayed())));
+                description.append(tr("\ntotal played for %1 hours").arg(Time::prettifyDurationHours(totalTimePlayed())));
             } else {
-                description.append(tr(", total played for %1").arg(Time::prettifyDuration(totalTimePlayed())));
+                description.append(tr("\ntotal played for %1").arg(Time::prettifyDuration(totalTimePlayed())));
             }
         }
     }

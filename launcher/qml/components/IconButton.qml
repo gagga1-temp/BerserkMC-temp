@@ -54,6 +54,9 @@ Rectangle {
     RowLayout {
         id: row
         anchors.centerIn: parent
+        // Never wider than the button itself: lets the label elide instead of
+        // spilling out when the button is squeezed (e.g. a narrow detail panel).
+        width: Math.min(implicitWidth, Math.max(0, root.width - 12))
         spacing: 8
 
         Icon {
@@ -64,8 +67,11 @@ Rectangle {
         }
         Text {
             id: textRef
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
             text: root.text
             visible: text.length
+            elide: Text.ElideRight
             font.family: Theme.fontBody
             font.pointSize: root.dense ? 9 : 10
             font.weight: Font.DemiBold

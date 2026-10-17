@@ -17,7 +17,34 @@ Rectangle {
     property string playerName: "Player"
     property string accountKind: "Offline"
 
+    // Mirror App.accounts into a light array for the ProfileMenu selector.
+    property var profiles: []
+    function rebuildProfiles() {
+        var out = []
+        if (typeof App !== "undefined") {
+            var list = App.accounts || []
+            for (var i = 0; i < list.length; ++i) {
+                var a = list[i]
+                var nm = a.displayName || ""
+                out.push({
+                    internalId: a.internalId || "",
+                    name: nm,
+                    initial: nm.length ? nm.charAt(0).toUpperCase() : "?",
+                    kind: a.kind || "Offline",
+                    hasSkin: a.hasSkin === true
+                })
+            }
+        }
+        profiles = out
+    }
+
+    // Right-hand instance detail panel: user-resizable by dragging the splitter.
+    property int detailWidth: 320
+    readonly property int detailMinWidth: 100
+    readonly property int detailMaxWidth: Math.max(detailMinWidth, width - 140)
+
     signal accountsRequested()
+    signal skinsRequested()
     signal settingsRequested()
     signal newInstanceRequested()
     signal foldersRequested()
@@ -92,10 +119,25 @@ Rectangle {
         return qsTr("BIBLIOTHÈQUE · %1 INSTANCES").arg(instancesModel.count)
     }
 
-    Component.onCompleted: rebuildInstancesModel()
+    function loadDetailWidth() {
+        if (typeof App === "undefined") return
+        var w = parseInt(App.getSetting("DetailPanelWidth", detailWidth))
+        if (!isNaN(w)) detailWidth = Math.max(detailMinWidth, w)
+    }
+    // Persist the user's chosen panel width so it survives restarts.
+    onDetailWidthChanged: {
+        if (typeof App !== "undefined") App.setSetting("DetailPanelWidth", detailWidth)
+    }
+
+    Component.onCompleted: {
+        rebuildInstancesModel()
+        rebuildProfiles()
+        loadDetailWidth()
+    }
     Connections {
         target: typeof App !== "undefined" ? App : null
         function onInstancesChanged() { page.rebuildInstancesModel() }
+        function onAccountsChanged() { page.rebuildProfiles() }
     }
 
     property int selectedIndex: 0
@@ -115,10 +157,27 @@ Rectangle {
         Toolbar {
             id: tb
             Layout.fillWidth: true
-            accountName:    page.playerName
-            accountInitial: page.playerName.length ? page.playerName.charAt(0).toUpperCase() : "?"
-            accountKind:    page.accountKind
+            profiles: page.profiles
+            activeId: typeof App !== "undefined" ? App.defaultAccountId : ""
+
+            onProfileActivated: function(internalId) {
+                if (typeof App !== "undefined") App.setDefaultAccount(internalId)
+            }
+            // Creating a profile is offline-only; once the bridge has added it
+            // (accountsChanged fired synchronously), promote it to active.
+            onProfileCreated: function(playerName) {
+                if (typeof App === "undefined") return
+                App.createOfflineAccount(playerName, "", "")
+                var list = App.accounts
+                for (var i = 0; i < list.length; ++i) {
+                    if ((list[i].displayName || "").toLowerCase() === playerName.toLowerCase()) {
+                        App.setDefaultAccount(list[i].internalId)
+                        break
+                    }
+                }
+            }
             onAccountRequested:     page.accountsRequested()
+            onSkinsRequested:       page.skinsRequested()
             onSettingsRequested:    page.settingsRequested()
             onNewInstanceRequested: page.newInstanceRequested()
             onFoldersRequested:     page.foldersRequested()
@@ -126,6 +185,7 @@ Rectangle {
 
         // ===== Body =====
         RowLayout {
+            id: body
             Layout.fillWidth: true
             Layout.fillHeight: true
             spacing: 0
@@ -291,9 +351,57 @@ Rectangle {
                 }
             }
 
+            // ----- Drag handle: resize the detail panel -----
+            Item {
+                id: splitter
+                Layout.fillHeight: true
+                Layout.preferredWidth: 8
+                Layout.minimumWidth: 8
+
+                property real pressX: 0
+                property real startWidth: 0
+                readonly property bool active: splitterArea.containsMouse || splitterArea.pressed
+
+                // 1px hairline that thickens + tints on hover/drag.
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: splitter.active ? 2 : 1
+                    color: splitter.active ? Theme.accent : Theme.borderSubtle
+                    Behavior on width { NumberAnimation { duration: Theme.durFast } }
+                    Behavior on color { ColorAnimation { duration: Theme.durFast } }
+                }
+
+                MouseArea {
+                    id: splitterArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    preventStealing: true
+                    cursorShape: Qt.SizeHorCursor
+                    onPressed: {
+                        // startWidth is the panel's *effective* width (already clamped
+                        // by the layout), so repeated drags stay consistent.
+                        splitter.startWidth = detail.width
+                        splitter.pressX = mapToItem(body, mouse.x, mouse.y).x
+                    }
+                    onPositionChanged: {
+                        if (!pressed) return
+                        var x = mapToItem(body, mouse.x, mouse.y).x
+                        page.detailWidth = Math.max(page.detailMinWidth,
+                            Math.min(page.detailMaxWidth, splitter.startWidth - (x - splitter.pressX)))
+                    }
+                    // Double-click resets to the default width.
+                    onDoubleClicked: page.detailWidth = 320
+                }
+            }
+
             // ----- Sidebar -----
             InstanceSidebar {
-                Layout.preferredWidth: 320
+                id: detail
+                Layout.preferredWidth: page.detailWidth
+                Layout.minimumWidth: page.detailMinWidth
+                Layout.maximumWidth: page.detailMaxWidth
                 Layout.fillHeight: true
                 instanceId: page.selectedInstanceId()
                 isRunning: typeof App !== "undefined" && App.runningInstances.indexOf(instanceId) >= 0

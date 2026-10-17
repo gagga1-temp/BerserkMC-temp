@@ -142,30 +142,38 @@ void LaunchController::login() {
                         // we ask the user for a player name
                         QString lastOfflinePlayerName = APPLICATION->settings()->get("LastOfflinePlayerName").toString();
                         usedname = lastOfflinePlayerName.isEmpty() ? m_session->player_name : lastOfflinePlayerName;
-                        OfflineNameDialog dialog(usedname, m_parentWidget);
-                        int result = dialog.exec();
-                        if(result == OfflineNameDialog::Accepted)
+
+                        // Debug toggle (Settings > DEBUG): only pop the name dialog
+                        // when explicitly enabled. Otherwise we silently launch with
+                        // the remembered offline name.
+                        bool showNameDialog = APPLICATION->settings()->get("ShowOfflineNameDialog").toBool();
+                        if (showNameDialog)
                         {
-                            usedname = dialog.textValue();
-                            APPLICATION->settings()->set("LastOfflinePlayerName", usedname);
-                        }
-                        else if (result == OfflineNameDialog::Rejected)
-                        {
-                            tryagain = false;
-                            break;
-                        }
-                        else if(result == OfflineNameDialog::OnlineRequested)
-                        {
-                            m_userWantsOnline = true;
-                            if(m_accountToUse->accountState() == AccountState::Offline)
+                            OfflineNameDialog dialog(usedname, m_parentWidget);
+                            int result = dialog.exec();
+                            if(result == OfflineNameDialog::Accepted)
                             {
-                                auto task = m_accountToUse->refresh();
-                                if(task)
-                                {
-                                    task->start();
-                                }
+                                usedname = dialog.textValue();
+                                APPLICATION->settings()->set("LastOfflinePlayerName", usedname);
                             }
-                            break;
+                            else if (result == OfflineNameDialog::Rejected)
+                            {
+                                tryagain = false;
+                                break;
+                            }
+                            else if(result == OfflineNameDialog::OnlineRequested)
+                            {
+                                m_userWantsOnline = true;
+                                if(m_accountToUse->accountState() == AccountState::Offline)
+                                {
+                                    auto task = m_accountToUse->refresh();
+                                    if(task)
+                                    {
+                                        task->start();
+                                    }
+                                }
+                                break;
+                            }
                         }
                     }
                     else {

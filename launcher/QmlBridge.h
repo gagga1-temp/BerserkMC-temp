@@ -14,6 +14,7 @@
 class Application;
 class AccountList;
 class InstanceList;
+class QProcess;
 
 class QmlBridge : public QObject
 {
@@ -23,6 +24,9 @@ class QmlBridge : public QObject
     Q_PROPERTY(bool         hasAccount      READ hasAccount      NOTIFY accountsChanged)
     Q_PROPERTY(QString      defaultPlayer   READ defaultPlayer   NOTIFY accountsChanged)
     Q_PROPERTY(QString      defaultKind     READ defaultKind     NOTIFY accountsChanged)
+    Q_PROPERTY(QString      defaultAccountId READ defaultAccountId NOTIFY accountsChanged)
+    Q_PROPERTY(bool         defaultAccountHasSkin READ defaultAccountHasSkin NOTIFY accountsChanged)
+    Q_PROPERTY(QVariantList skins           READ skins           NOTIFY skinsChanged)
     Q_PROPERTY(QStringList  runningInstances READ runningInstances NOTIFY runningInstancesChanged)
 
 public:
@@ -33,11 +37,15 @@ public:
     bool hasAccount() const        { return !m_accounts.isEmpty(); }
     QString defaultPlayer() const  { return m_defaultPlayer; }
     QString defaultKind() const    { return m_defaultKind; }
+    QString defaultAccountId() const { return m_defaultAccountId; }
+    bool defaultAccountHasSkin() const { return m_defaultAccountHasSkin; }
+    QVariantList skins() const     { return m_skins; }
     QStringList runningInstances() const { return m_runningInstances; }
 
     // Called by Application once accounts/instances are loaded.
     void rebuildAccounts();
     void rebuildInstances();
+    void rebuildSkins();
     void connectModels();
 
 public:
@@ -47,11 +55,22 @@ public:
 
 public slots:
     // Accounts
-    void createOfflineAccount(const QString &playerName);
+    void createOfflineAccount(const QString &playerName,
+                              const QString &skinKey = QString(),
+                              const QString &skinVariant = QString());
     void setDefaultAccount(const QString &internalId);
     void removeAccount(const QString &internalId);
     void renameOfflineAccount(const QString &internalId, const QString &newName);
     void showAccountsDialog();         // opens the cpp AccountsDialog (offline-only, MSA login disabled)
+    void showOfflineNameDialog();      // debug: opens the OfflineNameDialog on demand
+
+    // Skins (locally-managed library)
+    void importSkin();                 // native file picker -> SkinsModel
+    bool deleteSkin(const QString &skinKey);
+    void setAccountSkin(const QString &internalId, const QString &skinKey, const QString &skinVariant);
+    void clearAccountSkin(const QString &internalId);
+    QString skinsDirectory() const;
+    void openSkinsFolder();
 
     // Instance lifecycle
     void launchInstance(const QString &instanceId, bool offline = false);
@@ -75,6 +94,7 @@ public slots:
     QVariant getSetting(const QString &key, const QVariant &fallback = QVariant());
     void     setSetting(const QString &key, const QVariant &value);
     void     openChangelog();
+    void     checkForUpdates();        // manual auto-updater trigger (Updater.exe next to the binary)
     QString  browseForJava();   // opens a native file picker, returns path or ""
     void     detectJava();      // scans the system for Java installs (Adoptium/etc.)
     Q_INVOKABLE QString launcherRoot() const; // data folder shown in the settings UI
@@ -91,6 +111,7 @@ public slots:
 signals:
     void accountsChanged();
     void instancesChanged();
+    void skinsChanged();
     void runningInstancesChanged();
     void versionListChanged();
     void notification(const QString &kind, const QString &message);
@@ -98,24 +119,34 @@ signals:
 private slots:
     void onAccountsChanged();
     void onInstancesChanged();
+    void onSkinsChanged();
     void onMinecraftVersionsLoaded();
     void onMinecraftVersionsFailed();
 
 private:
     QVariantList m_accounts;
     QVariantList m_instances;
+    QVariantList m_skins;
     QString m_defaultPlayer;
     QString m_defaultKind;
+    QString m_defaultAccountId;
+    bool m_defaultAccountHasSkin = false;
     QStringList m_runningInstances;
     QVariantList m_mcVersions;
     bool m_mcVersionsLoading = false;
     bool m_mcVersionsLoaded = false;
     bool m_mcVersionsFailed = false;
+    QProcess *m_updateCheck = nullptr;
 
     void rebuildMinecraftVersions();
 
     AccountList* accountList() const;
     InstanceList* instanceList() const;
+
+    // BerserkMC: resolve a library skin and apply it to a profile. Offline
+    // profiles only accept the bundled system skins (imported skins are
+    // reserved for online profiles), so this is a no-op otherwise.
+    void applySkinToAccount(const MinecraftAccountPtr &acc, const QString &skinKey, const QString &skinVariant);
 
     class JavaInstaller* m_javaInstaller = nullptr;
 };

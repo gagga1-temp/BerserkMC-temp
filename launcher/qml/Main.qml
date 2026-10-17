@@ -112,9 +112,9 @@ ApplicationWindow {
     Component {
         id: welcomeComp
         WelcomeView {
-            onOfflineAccountCreated: function(name) {
+            onOfflineAccountCreated: function(name, skinKey, skinVariant) {
                 if (typeof App !== "undefined")
-                    App.createOfflineAccount(name)
+                    App.createOfflineAccount(name, skinKey, skinVariant)
                 // StackView swap is driven by App.accountsChanged above so we
                 // don't double-navigate.
             }
@@ -127,6 +127,7 @@ ApplicationWindow {
             playerName:  root.playerName
             accountKind: root.accountKind
             onAccountsRequested:    stack.push(accountsComp)
+            onSkinsRequested:       stack.push(skinsComp)
             onSettingsRequested:    stack.push(settingsComp)
             onNewInstanceRequested: stack.push(newInstanceComp)
             onFoldersRequested: {
@@ -138,6 +139,11 @@ ApplicationWindow {
     Component {
         id: accountsComp
         AccountsView { onBack: stack.pop() }
+    }
+
+    Component {
+        id: skinsComp
+        SkinsView { onBack: stack.pop() }
     }
 
     Component {

@@ -91,6 +91,11 @@ public: /* manipulation */
 
     shared_qobject_ptr<AccountTask> setSkin(Skins::Model model, QByteArray texture, const QString& capeUUID);
 
+    // BerserkMC: assign a locally-managed skin to an offline account. `skinKey`
+    // references the skins library, `texture` is the raw PNG, `slim` selects the
+    // slim (Alex) arm layout. Emits changed() so the list autosaves.
+    void setOfflineSkin(const QString& skinKey, bool slim, const QByteArray& texture);
+
     shared_qobject_ptr<AccountTask> currentTask();
 
 public: /* queries */
@@ -141,6 +146,7 @@ public: /* queries */
     QPixmap getFace() const;
 
     QByteArray getSkin() const;
+    QString getSkinKey() const;
     QString getCurrentCape() const;
     Skins::Model getSkinModel() const;
 

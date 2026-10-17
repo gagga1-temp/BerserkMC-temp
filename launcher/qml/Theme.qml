@@ -39,9 +39,19 @@ QtObject {
     // Derive all six accent variants from a hex string. Call from QML to
     // re-tint the whole UI at runtime.
     function setAccent(hex) {
-        var col = Qt.color(hex)
-        if (!col) return
-        var r = col.r, g = col.g, b = col.b
+        // NOTE: QML has no Qt.color(); the only built-in string→color
+        // conversion is assigning to a color property. From a singleton
+        // function we therefore parse "#RGB"/"#RRGGBB" by hand.
+        if (typeof hex !== "string" || hex.length === 0) return
+        var h = hex.charAt(0) === "#" ? hex.substring(1) : hex
+        if (h.length === 3) {
+            h = h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2)
+        }
+        if (h.length !== 6) return
+        var r = parseInt(h.substring(0, 2), 16) / 255
+        var g = parseInt(h.substring(2, 4), 16) / 255
+        var b = parseInt(h.substring(4, 6), 16) / 255
+        if (isNaN(r) || isNaN(g) || isNaN(b)) return
         accent       = Qt.rgba(r, g, b, 0.75)
         accentStrong = Qt.rgba(r, g, b, 0.92)
         accentSoft   = Qt.rgba(r, g, b, 0.15)

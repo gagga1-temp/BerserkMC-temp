@@ -257,6 +257,14 @@ bool AccountData::resumeStateFromV3(QJsonObject data) {
         minecraftProfile.id = offlineUuid;
         minecraftProfile.name = offlineName;
         minecraftProfile.validity = Katabasis::Validity::Certain;
+        // Optional locally-managed skin (BerserkMC): key in the skins library,
+        // the "CLASSIC"/"SLIM" variant and the raw PNG bytes.
+        minecraftProfile.skin.id = data.value("offline_skin").toString();
+        minecraftProfile.skin.variant = data.value("offline_skin_variant").toString();
+        auto skinData = data.value("offline_skin_data");
+        if(skinData.isString()) {
+            minecraftProfile.skin.data = QByteArray::fromBase64(skinData.toString().toLatin1());
+        }
         minecraftEntitlement.ownsMinecraft = true;
         minecraftEntitlement.canPlayMinecraft = true;
         minecraftEntitlement.validity = Katabasis::Validity::Certain;
@@ -293,6 +301,14 @@ QJsonObject AccountData::saveState() const {
         output["type"] = "Offline";
         output["offline_name"] = offlineName;
         output["offline_uuid"] = offlineUuid;
+        // Optional locally-managed skin (BerserkMC).
+        if(!minecraftProfile.skin.id.isEmpty()) {
+            output["offline_skin"] = minecraftProfile.skin.id;
+            output["offline_skin_variant"] = minecraftProfile.skin.variant;
+        }
+        if(!minecraftProfile.skin.data.isEmpty()) {
+            output["offline_skin_data"] = QString::fromLatin1(minecraftProfile.skin.data.toBase64());
+        }
         return output;
     }
     output["type"] = "MSA";

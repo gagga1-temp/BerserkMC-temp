@@ -23,6 +23,9 @@ Rectangle {
     property string selectedLoader: "Aucun"
     property string selectedVersion: ""
     property string instanceName: ""
+    // The name field is pre-filled from the current selection, but stays fully
+    // editable: as soon as the user types (or clears) it we stop overwriting it.
+    property bool nameEdited: false
 
     // The Create button is only valid once a name and a version are known —
     // this blocks the old "fires with the default version before load" path.
@@ -78,8 +81,26 @@ Rectangle {
         // Auto-select the first match, but never clobber a user's choice.
         if (page.selectedVersion.length === 0 && versions.count > 0)
             page.selectedVersion = versions.get(0).id_
+        page.applyAutoName()
     }
     onFilterChanged: rebuildVersions()
+
+    // Suggested name derived from the current selection (version + loader).
+    function defaultInstanceName() {
+        if (page.selectedVersion.length === 0) return ""
+        if (page.selectedLoader.length > 0 && page.selectedLoader !== "Aucun")
+            return page.selectedVersion + " " + page.selectedLoader
+        return page.selectedVersion
+    }
+
+    // Fill the name field with the suggestion, but never overwrite what the
+    // user typed: after the first manual edit/erase, the field is theirs.
+    function applyAutoName() {
+        if (page.nameEdited) return
+        var n = defaultInstanceName()
+        page.instanceName = n
+        if (nameInput) nameInput.text = n
+    }
 
     function humanizeAge(ms) {
         if (!ms || ms <= 0) return ""
@@ -299,14 +320,18 @@ Rectangle {
                                     anchors.fill: parent
                                     anchors.leftMargin: 14
                                     anchors.rightMargin: 14
-                                    text: page.instanceName
                                     placeholderText: qsTr("Ex. Ma survie")
                                     color: Theme.textPrimary
                                     font.family: Theme.fontBody
                                     font.pointSize: 11
                                     background: null
                                     verticalAlignment: TextInput.AlignVCenter
-                                    onTextChanged: page.instanceName = text
+                                    // onTextEdited fires only for user input, so a
+                                    // programmatic auto-name never marks the field dirty.
+                                    onTextEdited: {
+                                        page.instanceName = text
+                                        page.nameEdited = true
+                                    }
                                 }
                             }
                         }
@@ -351,7 +376,10 @@ Rectangle {
                                             anchors.fill: parent
                                             hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
-                                            onClicked: page.selectedLoader = modelData
+                                            onClicked: {
+                                                page.selectedLoader = modelData
+                                                page.applyAutoName()
+                                            }
                                         }
                                     }
                                 }
@@ -559,7 +587,10 @@ Rectangle {
                                             anchors.fill: parent
                                             hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
-                                            onClicked: page.selectedVersion = model.id_
+                                            onClicked: {
+                                                page.selectedVersion = model.id_
+                                                page.applyAutoName()
+                                            }
                                         }
                                     }
                                 }

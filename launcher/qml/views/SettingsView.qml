@@ -23,6 +23,7 @@ Rectangle {
     property bool   animations: true
     property bool   closeOnLaunch: false
     property bool   showConsoleOnStart: false
+    property bool   showOfflineNameDialog: false
     property int    accentIndex: 0
     property string launcherRoot: ""
     readonly property var accents: [
@@ -54,6 +55,8 @@ Rectangle {
                                    || App.getSetting("AutoCloseConsole", false) === "true"
             page.showConsoleOnStart = App.getSetting("ShowConsole", false) === true
                                    || App.getSetting("ShowConsole", false) === "true"
+            page.showOfflineNameDialog = App.getSetting("ShowOfflineNameDialog", false) === true
+                                   || App.getSetting("ShowOfflineNameDialog", false) === "true"
             page.detectJava         = App.getSetting("DetectJava", true) !== false
             page.animations         = App.getSetting("Animations", true) !== false
             page.launcherRoot       = App.launcherRoot()
@@ -75,6 +78,7 @@ Rectangle {
     onMaxRamChanged:              if (_ready && typeof App !== "undefined") App.setSetting("MaxMemAlloc", Math.round(maxRam))
     onCloseOnLaunchChanged:       if (_ready && typeof App !== "undefined") App.setSetting("AutoCloseConsole", closeOnLaunch)
     onShowConsoleOnStartChanged:  if (_ready && typeof App !== "undefined") App.setSetting("ShowConsole", showConsoleOnStart)
+    onShowOfflineNameDialogChanged: if (_ready && typeof App !== "undefined") App.setSetting("ShowOfflineNameDialog", showOfflineNameDialog)
     onDetectJavaChanged:          if (_ready && typeof App !== "undefined") App.setSetting("DetectJava", detectJava)
     onAnimationsChanged: {
         if (!_ready) return
@@ -586,6 +590,77 @@ Rectangle {
                     Rectangle { Layout.fillWidth: true; height: 1; color: Theme.borderSubtle; Layout.topMargin: 12 }
                 }
 
+                // ----- DEBUG -----
+                ColumnLayout {
+                    Layout.leftMargin: 36
+                    Layout.rightMargin: 36
+                    Layout.fillWidth: true
+                    spacing: 14
+
+                    Column {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        Row {
+                            spacing: 10
+                            Rectangle { width: 8; height: 8; radius: 4; color: Theme.accentStrong; anchors.verticalCenter: parent.verticalCenter }
+                            Text { anchors.verticalCenter: parent.verticalCenter; text: qsTr("DEBUG"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 12; font.letterSpacing: 1.2; font.weight: Font.Bold }
+                        }
+                        Text { text: qsTr("Options de test — à laisser désactivées en usage normal."); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                    }
+
+                    // Show the offline player-name dialog at launch?
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 16
+                        Column {
+                            Layout.fillWidth: true
+                            spacing: 2
+                            Text { text: qsTr("Afficher la fenêtre du nom de joueur hors ligne"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                            Text {
+                                Layout.fillWidth: true
+                                width: parent.width
+                                wrapMode: Text.WordWrap
+                                text: qsTr("Si décoché, le lancement hors ligne utilise directement le dernier nom mémorisé.")
+                                color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10
+                            }
+                        }
+                        Rectangle {
+                            implicitWidth: 40; implicitHeight: 22
+                            radius: 11
+                            color: page.showOfflineNameDialog ? Theme.accent : Theme.bgInput
+                            Behavior on color { ColorAnimation { duration: Theme.durFast } }
+                            Rectangle {
+                                x: page.showOfflineNameDialog ? parent.width - width - 3 : 3
+                                y: 3
+                                width: 16; height: 16
+                                radius: 8
+                                color: page.showOfflineNameDialog ? "white" : Theme.textMuted
+                                Behavior on x { NumberAnimation { duration: Theme.durFast; easing.type: Easing.OutCubic } }
+                            }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: page.showOfflineNameDialog = !page.showOfflineNameDialog }
+                        }
+                    }
+
+                    // Open the dialog right now (no launch needed).
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 16
+                        Column {
+                            Layout.fillWidth: true
+                            spacing: 2
+                            Text { text: qsTr("Tester la fenêtre maintenant"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                            Text { text: qsTr("Ouvre immédiatement la fenêtre de saisie du nom hors ligne"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                        }
+                        IconButton {
+                            variant: "filled"
+                            text: qsTr("Ouvrir")
+                            onClicked: if (typeof App !== "undefined") App.showOfflineNameDialog()
+                        }
+                    }
+
+                    Rectangle { Layout.fillWidth: true; height: 1; color: Theme.borderSubtle; Layout.topMargin: 12 }
+                }
+
                 // ----- À PROPOS -----
                 ColumnLayout {
                     Layout.leftMargin: 36
@@ -617,6 +692,22 @@ Rectangle {
                             variant: "filled"
                             text: qsTr("Voir le changelog")
                             onClicked: if (typeof App !== "undefined") App.openChangelog()
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 16
+                        Column {
+                            Layout.fillWidth: true
+                            spacing: 2
+                            Text { text: qsTr("Mises à jour"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                            Text { text: qsTr("Télécharge et installe la dernière version depuis GitHub"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                        }
+                        IconButton {
+                            variant: "filled"
+                            text: qsTr("Vérifier les mises à jour")
+                            onClicked: if (typeof App !== "undefined") App.checkForUpdates()
                         }
                     }
 

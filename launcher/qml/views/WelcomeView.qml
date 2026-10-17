@@ -16,7 +16,7 @@ Rectangle {
 
     readonly property string viewTitle: "BIENVENUE"
 
-    signal offlineAccountCreated(string playerName)
+    signal offlineAccountCreated(string playerName, string skinKey, string skinVariant)
 
     // Soft accent gradient backdrop (vertical band centered on the logo area)
     Rectangle {
@@ -181,6 +181,19 @@ Rectangle {
 
         Item { height: 6; Layout.fillWidth: true }
 
+        // Fresh profiles are offline, so only the bundled system skins are
+        // offered here (imported skins are reserved for online profiles).
+        SkinPicker {
+            id: createSkin
+            Layout.fillWidth: true
+            showNone: true
+            systemOnly: true
+            selectedKey: "Steve"
+            selectedVariant: "classic"
+        }
+
+        Item { height: 6; Layout.fillWidth: true }
+
         Rectangle {
             id: createBtn
             Layout.fillWidth: true
@@ -198,7 +211,7 @@ Rectangle {
 
             function tryCreate() {
                 if (nameInput.text.length >= 3) {
-                    page.offlineAccountCreated(nameInput.text)
+                    page.offlineAccountCreated(nameInput.text, createSkin.selectedKey, createSkin.selectedVariant)
                 }
             }
 

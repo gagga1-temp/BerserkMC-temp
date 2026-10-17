@@ -2,6 +2,7 @@
 #include "BuildConfig.h"
 #include "QmlBridge.h"
 #include "QmlIconProvider.h"
+#include "QmlSkinProvider.h"
 
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -46,6 +47,7 @@
 #include <QAccessible>
 #include <QDir>
 #include <QFileInfo>
+#include <QStandardPaths>
 #include <QNetworkAccessManager>
 #include <QTranslator>
 #include <QLibraryInfo>
@@ -155,6 +157,75 @@ QString getIdealPlatform(QString currentPlatform) {
         }
     }
     return currentPlatform;
+}
+
+// --- BerserkMC: keep the launcher next to its Qt/jars/java, data in Documents ---
+
+// Same folder? Windows paths are case insensitive.
+bool sameFolder(const QString &a, const QString &b)
+{
+    return QDir::cleanPath(a).compare(QDir::cleanPath(b), Qt::CaseInsensitive) == 0;
+}
+
+// Move one file or folder to the new data location without ever clobbering an
+// existing entry. Falls back to a recursive copy when both locations live on
+// different volumes (QDir::rename cannot cross them).
+bool relocateEntry(const QString &from, const QString &to)
+{
+    if (!QFileInfo::exists(from))
+        return true;
+    if (QFileInfo::exists(to))
+    {
+        qWarning() << "Not relocating" << from << "- already exists at" << to;
+        return false;
+    }
+    if (!FS::ensureFilePathExists(to))
+        return false;
+    QDir dir;
+    if (dir.rename(from, to))
+        return true;
+    qDebug() << "Cross-volume move of" << from << "- copying instead";
+    if (!FS::copy(from, to)())
+        return false;
+    return FS::deletePath(from);
+}
+
+// One-time migration for existing installs that still keep their data next to
+// the executable: relocate accounts, instances, skins and friends to the new
+// data folder so nothing looks lost. Does nothing when the target is already
+// initialized or when there is nothing to move.
+void migrateDataNextToBinary(const QString &binPath, const QString &dataPath)
+{
+    if (QFileInfo::exists(FS::PathCombine(dataPath, BuildConfig.LAUNCHER_CONFIGFILE)))
+        return;
+    if (!QFileInfo::exists(FS::PathCombine(binPath, BuildConfig.LAUNCHER_CONFIGFILE)))
+        return;
+
+    qDebug() << "Migrating launcher data from" << binPath << "to" << dataPath;
+
+    const QStringList folders = {
+        "accounts", "assets", "cache", "icons", "instances", "libraries",
+        "meta", "metacache", "mods", "skins", "themes", "versions",
+    };
+    for (const QString &folder : folders)
+        relocateEntry(FS::PathCombine(binPath, folder), FS::PathCombine(dataPath, folder));
+
+    const QStringList files = { "accounts.json", BuildConfig.LAUNCHER_CONFIGFILE };
+    for (const QString &file : files)
+        relocateEntry(FS::PathCombine(binPath, file), FS::PathCombine(dataPath, file));
+
+    // Rotated log files from the old location.
+    const auto logs = QDir(binPath).entryInfoList({BuildConfig.LAUNCHER_NAME + "-*.log"}, QDir::Files);
+    for (const auto &info : logs)
+        relocateEntry(info.absoluteFilePath(), FS::PathCombine(dataPath, info.fileName()));
+
+    // Qt's own translations have to stay next to the executable (that is where
+    // QLibraryInfo looks for them) - only the launcher's own files move.
+    const auto translations = QDir(FS::PathCombine(binPath, "translations"))
+                                  .entryInfoList({"index_v2.json", "mmc_*.qm"}, QDir::Files);
+    for (const auto &info : translations)
+        relocateEntry(info.absoluteFilePath(),
+                      FS::PathCombine(dataPath, "translations", info.fileName()));
 }
 
 }
@@ -337,6 +408,22 @@ Application::Application(int &argc, char **argv) : QApplication(argc, argv)
         QDir foo(FS::PathCombine(applicationDirPath(), "../../Data"));
         dataPath = foo.absolutePath();
         adjustedBy += "Fallback to special Mac location " + dataPath;
+#elif defined(Q_OS_WIN32)
+        // BerserkMC: the launcher (exe, Qt, jars, bundled Java) stays where it
+        // was installed, but every piece of user/game data lives in the user's
+        // Documents folder - like minecraftlauncher.exe vs .minecraft.
+        // Use --dir to pick another location.
+        const QString documents = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+        if (documents.isEmpty())
+        {
+            dataPath = applicationDirPath();
+            adjustedBy += "Fallback to binary path " + dataPath;
+        }
+        else
+        {
+            dataPath = FS::PathCombine(documents, BuildConfig.LAUNCHER_NAME);
+            adjustedBy += "Fallback to Documents location " + dataPath;
+        }
 #else
         dataPath = applicationDirPath();
         adjustedBy += "Fallback to binary path " + dataPath;
@@ -379,6 +466,14 @@ Application::Application(int &argc, char **argv) : QApplication(argc, argv)
         );
         return;
     }
+
+    // BerserkMC: an existing install may still have its data next to the
+    // executable. The first time we start with the new data folder, bring that
+    // data along. A folder picked explicitly with --dir is left untouched.
+#if defined(Q_OS_WIN32)
+    if (dirParam.isEmpty() && !sameFolder(dataPath, binPath))
+        migrateDataNextToBinary(binPath, dataPath);
+#endif
 
     // --world and --server can't be used together
     if(!m_worldToJoin.isEmpty() && !m_serverToJoin.isEmpty())
@@ -674,6 +769,16 @@ Application::Application(int &argc, char **argv) : QApplication(argc, argv)
 
         // Remembered state
         m_settings->registerSetting("LastUsedGroupForNewInstance", QString());
+        // Width (px) of the right-hand instance detail panel in the Library view.
+        m_settings->registerSetting("DetailPanelWidth", 320);
+
+        // Debug: when true, launching an instance offline pops the
+        // OfflineNameDialog. When false (default), the launch uses the
+        // remembered offline name directly (no dialog).
+        m_settings->registerSetting("ShowOfflineNameDialog", false);
+        // UI prefs owned by the QML Settings page.
+        m_settings->registerSetting("Animations", true);
+        m_settings->registerSetting("AccentHex", QString());
 
         QString defaultMonospace;
         int defaultSize = 11;
@@ -1486,6 +1591,9 @@ void Application::showQmlMainWindow()
     // Image provider for instance / launcher icons:
     //     Image { source: "image://mmcicon/<key>" }
     m_qmlEngine->addImageProvider(QStringLiteral("mmcicon"), new QmlIconProvider);
+    // Image provider for Minecraft skins / heads:
+    //     Image { source: "image://skins/face/<key>/<variant>" }
+    m_qmlEngine->addImageProvider(QStringLiteral("skins"), new QmlSkinProvider);
     m_qmlEngine->rootContext()->setContextProperty("App", m_qmlBridge);
     m_qmlEngine->load(QUrl(QStringLiteral("qrc:/qml/Main.qml")));
 

@@ -11,9 +11,13 @@
         <file>components/InstanceSidebar.qml</file>
         <file>components/Toast.qml</file>
         <file>components/PageHeader.qml</file>
+        <file>components/SkinAvatar.qml</file>
+        <file>components/SkinPicker.qml</file>
+        <file>components/ProfileMenu.qml</file>
         <file>views/LibraryView.qml</file>
         <file>views/WelcomeView.qml</file>
         <file>views/AccountsView.qml</file>
+        <file>views/SkinsView.qml</file>
         <file>views/NewInstanceView.qml</file>
         <file>views/SettingsView.qml</file>
         <file>fonts/DMSans.ttf</file>
@@ -36,6 +40,8 @@
         <file>icons/link.svg</file>
         <file>icons/trash.svg</file>
         <file>icons/dots-h.svg</file>
+        <file>icons/chevron-down.svg</file>
+        <file>icons/check.svg</file>
         <file>icons/arrow-left.svg</file>
         <file>icons/pickaxe.svg</file>
         <file>icons/cube.svg</file>

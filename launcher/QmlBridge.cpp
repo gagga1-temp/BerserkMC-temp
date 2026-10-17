@@ -25,16 +25,44 @@
 #include "ui/dialogs/CreateShortcutDialog.h"
 #include "ui/dialogs/CustomMessageBox.h"
 #include "ui/dialogs/ProgressDialog.h"
+#include "ui/dialogs/OfflineNameDialog.h"
+
+#include "skins/SkinTypes.h"
+#include "skins/SkinsModel.h"
+#include "skins/SkinUtils.h"
 
 #include <QAbstractListModel>
 #include <QDebug>
 #include <QFileInfo>
+#include <QFileDialog>
+#include <QRegularExpression>
 #include <QDir>
 #include <QSet>
 #include <QUrl>
 #include <QCoreApplication>
 #include <QMessageBox>
 #include <QStandardPaths>
+#include <QProcess>
+#include <QTimer>
+
+namespace {
+// BerserkMC: the local library mixes bundled system skins (shipped with the
+// launcher) with skins imported by the user (PNG files). Offline profiles may
+// only use the bundled system skins; imported skins are reserved for online
+// profiles.
+bool isSystemSkinKey(const QString &skinKey)
+{
+    if (skinKey.isEmpty()) {
+        return false;
+    }
+    auto skins = APPLICATION ? APPLICATION->skinsModel() : nullptr;
+    if (!skins) {
+        return false;
+    }
+    const auto &entry = skins->skinEntry(skinKey);
+    return !entry.isNull() && entry.internal;
+}
+} // namespace
 
 QmlBridge::QmlBridge(QObject *parent) : QObject(parent)
 {
@@ -133,6 +161,11 @@ void QmlBridge::connectModels()
         connect(a, &QAbstractListModel::dataChanged, this, &QmlBridge::onAccountsChanged);
         connect(a, &AccountList::defaultAccountChanged, this, &QmlBridge::onAccountsChanged);
     }
+    if (auto skins = APPLICATION ? APPLICATION->skinsModel() : nullptr) {
+        connect(skins.get(), &SkinsModel::listUpdated, this, &QmlBridge::onSkinsChanged);
+        connect(skins.get(), &SkinsModel::skinUpdated, this,
+                [this](const QString &) { onSkinsChanged(); });
+    }
     auto i = instanceList();
     if (i) {
         connect(i, &QAbstractListModel::modelReset,  this, &QmlBridge::onInstancesChanged);
@@ -162,6 +195,7 @@ void QmlBridge::connectModels()
             });
     rebuildAccounts();
     rebuildInstances();
+    rebuildSkins();
 }
 
 void QmlBridge::onAccountsChanged()
@@ -181,6 +215,8 @@ void QmlBridge::rebuildAccounts()
     m_accounts.clear();
     m_defaultPlayer.clear();
     m_defaultKind.clear();
+    m_defaultAccountId.clear();
+    m_defaultAccountHasSkin = false;
 
     auto a = accountList();
     if (!a) return;
@@ -196,20 +232,70 @@ void QmlBridge::rebuildAccounts()
         m["profileName"]  = acc->profileName();
         m["gamerTag"]     = acc->gamerTag();
         m["displayName"]  = acc->profileName().isEmpty() ? acc->gamerTag() : acc->profileName();
-        m["kind"]         = acc->isOffline() ? QStringLiteral("Offline") : QStringLiteral("Microsoft");
+        const bool offline = acc->isOffline();
+        m["kind"]         = offline ? QStringLiteral("Offline") : QStringLiteral("Microsoft");
         m["offlineUuid"]  = acc->profileId();
         m["isDefault"]    = (def && def->internalId() == acc->internalId());
+        // BerserkMC: locally-managed skin (empty when none assigned). Offline
+        // profiles may only use the bundled system skins, so an imported skin
+        // assigned to one is ignored (falls back to the initial avatar).
+        QString skinKey = acc->getSkinKey();
+        QByteArray skinData = acc->getSkin();
+        if (offline && !skinData.isEmpty() && !isSystemSkinKey(skinKey)) {
+            skinKey.clear();
+            skinData.clear();
+        }
+        const bool hasSkin = !skinData.isEmpty();
+        const bool slim = hasSkin && acc->getSkinModel() == Skins::Model::Slim;
+        m["skinKey"]      = skinKey;
+        m["skinVariant"]  = slim ? QStringLiteral("slim") : QStringLiteral("classic");
+        m["hasSkin"]      = hasSkin;
         m_accounts.append(m);
 
         if (m["isDefault"].toBool()) {
             m_defaultPlayer = m["displayName"].toString();
             m_defaultKind   = m["kind"].toString();
+            m_defaultAccountId = acc->internalId();
+            m_defaultAccountHasSkin = hasSkin;
         }
     }
     if (m_defaultPlayer.isEmpty() && !m_accounts.isEmpty()) {
         m_defaultPlayer = m_accounts.first().toMap()["displayName"].toString();
         m_defaultKind   = m_accounts.first().toMap()["kind"].toString();
     }
+    if (m_defaultAccountId.isEmpty() && !m_accounts.isEmpty()) {
+        m_defaultAccountId = m_accounts.first().toMap()["internalId"].toString();
+        m_defaultAccountHasSkin = m_accounts.first().toMap()["hasSkin"].toBool();
+    }
+}
+
+void QmlBridge::rebuildSkins()
+{
+    m_skins.clear();
+    auto skins = APPLICATION ? APPLICATION->skinsModel() : nullptr;
+    if (!skins) return;
+
+    for (int row = 0; row < skins->rowCount(); ++row) {
+        const auto &entry = skins->at(row);
+        if (entry.isNull()) continue;
+
+        QVariantMap m;
+        m["key"]      = entry.name;
+        m["name"]     = entry.name;
+        m["internal"] = entry.internal;
+        // Both arm layouts are selectable for an imported (file-backed) skin:
+        // the PNG is identical, only the in-game arm geometry differs. Bundled
+        // system skins only expose the variants they actually ship.
+        m["slim"]     = entry.internal ? bool(entry.slimVariant) : bool(entry.fileVariant);
+        m["classic"]  = entry.internal ? bool(entry.classicVariant) : bool(entry.fileVariant);
+        m_skins.append(m);
+    }
+}
+
+void QmlBridge::onSkinsChanged()
+{
+    rebuildSkins();
+    emit skinsChanged();
 }
 
 void QmlBridge::rebuildInstances()
@@ -249,14 +335,18 @@ void QmlBridge::rebuildInstances()
     }
 }
 
-void QmlBridge::createOfflineAccount(const QString &playerName)
+void QmlBridge::createOfflineAccount(const QString &playerName, const QString &skinKey, const QString &skinVariant)
 {
-    if (playerName.size() < 3 || playerName.size() > 16) {
+    // Offline profiles accept 1–16 characters: Minecraft's 3-character minimum
+    // only applies to online/Mojang names. The UI rejects empty/duplicate
+    // pseudos before calling this.
+    const QString name = playerName.trimmed();
+    if (name.isEmpty() || name.size() > 16) {
         emit notification("error",
-            tr("Le pseudo doit faire entre 3 et 16 caractères."));
+            tr("Pseudo invalide (16 caractères max)."));
         return;
     }
-    auto acc = MinecraftAccount::createOffline(playerName);
+    auto acc = MinecraftAccount::createOffline(name);
     if (!acc) {
         emit notification("error", tr("Échec création compte hors-ligne."));
         return;
@@ -268,8 +358,148 @@ void QmlBridge::createOfflineAccount(const QString &playerName)
             || !APPLICATION->accounts()->defaultAccount()) {
             APPLICATION->accounts()->setDefaultAccount(acc);
         }
-        emit notification("ok", tr("Compte « %1 » créé.").arg(playerName));
+        // A fresh profile is offline, so only a bundled system skin sticks here
+        // (applySkinToAccount rejects imported skins for offline profiles).
+        if (!skinKey.isEmpty()) {
+            applySkinToAccount(acc, skinKey, skinVariant);
+        }
+        emit notification("ok", tr("Compte « %1 » créé.").arg(name));
     }
+}
+
+void QmlBridge::applySkinToAccount(const MinecraftAccountPtr &acc, const QString &skinKey, const QString &skinVariant)
+{
+    if (!acc || skinKey.isEmpty()) return;
+    // Offline profiles only accept the bundled system skins.
+    if (acc->isOffline() && !isSystemSkinKey(skinKey)) return;
+    auto skins = APPLICATION ? APPLICATION->skinsModel() : nullptr;
+    if (!skins) return;
+    const auto &entry = skins->skinEntry(skinKey);
+    if (entry.isNull()) return;
+    const bool slim = skinVariant.compare(QLatin1String("slim"), Qt::CaseInsensitive) == 0;
+    acc->setOfflineSkin(skinKey, slim,
+                        entry.getTextureDataFor(slim ? Skins::Model::Slim : Skins::Model::Classic));
+}
+
+void QmlBridge::importSkin()
+{
+    auto skins = APPLICATION ? APPLICATION->skinsModel() : nullptr;
+    if (!skins) return;
+
+    const QStringList files = QFileDialog::getOpenFileNames(
+        nullptr, tr("Importer un skin"), QString(),
+        tr("Skins Minecraft (*.png)"));
+    if (files.isEmpty()) return;
+
+    int installed = 0;
+    int failed = 0;
+    for (const QString &path : files) {
+        QFileInfo info(path);
+        QFile file(path);
+        if (!info.isFile() || !file.open(QIODevice::ReadOnly)) {
+            ++failed;
+            continue;
+        }
+        const QByteArray data = file.readAll();
+        file.close();
+        // Sanitise the key: alphanumerics, dash and underscore only.
+        QString base = info.baseName();
+        base.replace(QRegularExpression(QStringLiteral("[^A-Za-z0-9_-]")), QStringLiteral("_"));
+        if (base.isEmpty()) base = QStringLiteral("skin");
+        if (skins->installSkin(data, base).isValid()) {
+            ++installed;
+        } else {
+            ++failed;
+        }
+    }
+
+    if (installed > 0) {
+        emit notification("ok",
+            tr("%n skin(s) importé(s).", "", installed));
+    }
+    if (failed > 0) {
+        emit notification("warning",
+            tr("%n fichier(s) ignoré(s) (format invalide).", "", failed));
+    }
+}
+
+bool QmlBridge::deleteSkin(const QString &skinKey)
+{
+    auto skins = APPLICATION ? APPLICATION->skinsModel() : nullptr;
+    if (!skins) return false;
+    if (!skins->skinFileExists(skinKey)) {
+        emit notification("error", tr("Skin introuvable."));
+        return false;
+    }
+    // Only locally-imported (file-backed) skins can be deleted; the bundled
+    // system skins are read-only resources.
+    if (skins->skinEntry(skinKey).internal) {
+        emit notification("error", tr("Les skins système ne peuvent pas être supprimés."));
+        return false;
+    }
+    const bool ok = skins->deleteSkin(skinKey);
+    if (ok) {
+        // Refresh immediately; the file watcher also fires a directoryChanged.
+        skins->directoryChanged(skins->path());
+        emit notification("ok", tr("Skin « %1 » supprimé.").arg(skinKey));
+    } else {
+        emit notification("error", tr("Suppression impossible."));
+    }
+    return ok;
+}
+
+void QmlBridge::setAccountSkin(const QString &internalId, const QString &skinKey, const QString &skinVariant)
+{
+    MinecraftAccountPtr acc;
+    int row = -1;
+    if (!APPLICATION->accounts()->getAccountById(internalId, acc, row) || !acc) {
+        emit notification("error", tr("Compte introuvable."));
+        return;
+    }
+    if (skinKey.isEmpty()) {
+        clearAccountSkin(internalId);
+        return;
+    }
+
+    auto skins = APPLICATION->skinsModel();
+    const auto &entry = skins->skinEntry(skinKey);
+    if (entry.isNull()) {
+        emit notification("error", tr("Skin « %1 » introuvable.").arg(skinKey));
+        return;
+    }
+    // Offline profiles are limited to the bundled system skins; imported skins
+    // are reserved for online profiles.
+    if (acc->isOffline() && !entry.internal) {
+        emit notification("error", tr("Les skins importés sont réservés aux comptes en ligne."));
+        return;
+    }
+    const bool slim = skinVariant.compare(QLatin1String("slim"), Qt::CaseInsensitive) == 0;
+    acc->setOfflineSkin(skinKey, slim,
+                        entry.getTextureDataFor(slim ? Skins::Model::Slim : Skins::Model::Classic));
+    emit notification("ok", tr("Skin appliqué à « %1 ».").arg(acc->profileName()));
+}
+
+void QmlBridge::clearAccountSkin(const QString &internalId)
+{
+    MinecraftAccountPtr acc;
+    int row = -1;
+    if (!APPLICATION->accounts()->getAccountById(internalId, acc, row) || !acc) return;
+    acc->setOfflineSkin(QString(), false, QByteArray());
+    emit notification("ok", tr("Skin retiré."));
+}
+
+QString QmlBridge::skinsDirectory() const
+{
+    auto skins = APPLICATION ? APPLICATION->skinsModel() : nullptr;
+    return skins ? skins->path() : QString();
+}
+
+void QmlBridge::openSkinsFolder()
+{
+    const QString dir = skinsDirectory();
+    if (dir.isEmpty()) return;
+    QDir().mkpath(dir);
+    DesktopServices::openDirectory(dir);
 }
 
 void QmlBridge::setDefaultAccount(const QString &internalId)
@@ -333,6 +563,13 @@ void QmlBridge::renameOfflineAccount(const QString &internalId, const QString &n
         emit notification("error", tr("Renommage échoué."));
         return;
     }
+    // Carry the locally-managed skin over to the recreated account (offline
+    // profiles only ever hold a bundled system skin).
+    const QString skinKey = acc->getSkinKey();
+    const QByteArray skinData = acc->getSkin();
+    if (!skinData.isEmpty()) {
+        fresh->setOfflineSkin(skinKey, acc->getSkinModel() == Skins::Model::Slim, skinData);
+    }
     const bool wasDefault = (APPLICATION->accounts()->defaultAccount()
                               && APPLICATION->accounts()->defaultAccount()->internalId() == internalId);
     APPLICATION->accounts()->removeAccount(internalId);
@@ -346,6 +583,17 @@ void QmlBridge::renameOfflineAccount(const QString &internalId, const QString &n
 void QmlBridge::showAccountsDialog()
 {
     APPLICATION->ShowAccountsDialog(nullptr);
+}
+
+void QmlBridge::showOfflineNameDialog()
+{
+    QString lastName = APPLICATION->settings()->get("LastOfflinePlayerName").toString();
+    OfflineNameDialog dialog(lastName, nullptr);
+    if (dialog.exec() == OfflineNameDialog::Accepted) {
+        const QString name = dialog.textValue();
+        APPLICATION->settings()->set("LastOfflinePlayerName", name);
+        emit notification("info", tr("Nom de joueur hors ligne enregistré : %1").arg(name));
+    }
 }
 
 void QmlBridge::killInstance(const QString &instanceId)
@@ -623,6 +871,67 @@ void QmlBridge::openChangelog()
         }
     }
     emit notification("error", tr("Changelog introuvable sur cette installation."));
+}
+
+void QmlBridge::checkForUpdates()
+{
+    // L'auto-updater (projet BerserkMCUpdater) vit a cote du launcher. Le bouton
+    // manuel lance Updater.exe --check : code 10 = une mise a jour existe, on
+    // lance alors l'installation detachee puis on quitte pour liberer les
+    // fichiers. L'updater resout lui-meme l'URL du dernier release GitHub.
+    const QString updater = QDir(QCoreApplication::applicationDirPath()).absoluteFilePath("Updater.exe");
+    if (!QFileInfo::exists(updater)) {
+        emit notification("error", tr("Auto-update indisponible : Updater.exe introuvable à côté du launcher."));
+        return;
+    }
+    if (m_updateCheck) {
+        return; // une vérification est déjà en cours
+    }
+
+    m_updateCheck = new QProcess(this);
+#ifdef Q_OS_WIN
+    // Évite qu'une console clignote pendant la simple vérification (mode silencieux).
+    m_updateCheck->setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments *args) {
+#ifndef CREATE_NO_WINDOW
+#define CREATE_NO_WINDOW 0x08000000
+#endif
+        args->flags |= CREATE_NO_WINDOW;
+    });
+#endif
+    connect(m_updateCheck,
+            static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+            this, [this](int exitCode, QProcess::ExitStatus exitStatus) {
+        if (m_updateCheck) {
+            m_updateCheck->deleteLater();
+            m_updateCheck = nullptr;
+        }
+        if (exitStatus != QProcess::NormalExit) {
+            emit notification("error", tr("La vérification des mises à jour a échoué."));
+            return;
+        }
+        if (exitCode == 0) {
+            emit notification("ok", tr("BerserkMC est déjà à jour."));
+            return;
+        }
+        if (exitCode == 10) {
+            const QString updater =
+                QDir(QCoreApplication::applicationDirPath()).absoluteFilePath("Updater.exe");
+            emit notification("info", tr("Mise à jour disponible, installation puis redémarrage…"));
+            const QStringList updaterArgs = { QString::number(QCoreApplication::applicationPid()) };
+            if (!QProcess::startDetached(updater, updaterArgs)) {
+                emit notification("error", tr("Impossible de lancer l'auto-updater."));
+                return;
+            }
+            // Laisse la notification s'afficher, puis quitte pour liberer les fichiers :
+            // l'updater attend notre PID avant de remplacer quoi que ce soit.
+            QTimer::singleShot(1500, []() { QCoreApplication::quit(); });
+            return;
+        }
+        emit notification("error", tr("Vérification impossible (code %1).").arg(exitCode));
+    });
+
+    emit notification("info", tr("Recherche de mises à jour…"));
+    m_updateCheck->start(updater, { "--check", "--quiet" });
 }
 
 QString QmlBridge::launcherRoot() const
