@@ -814,8 +814,15 @@ bool QmlBridge::createVanillaInstance(const QString &name, const QString &versio
     profile->resolve(Net::Mode::Online);
     if (auto updateTask = profile->getCurrentTask()) {
         ProgressDialog ld(nullptr);
-        ld.execWithTask(updateTask.get());
+        int rc = ld.execWithTask(updateTask.get());
+        if (rc != QDialog::Accepted) {
+            emit notification("error", tr("Échec de l'installation de %1 (téléchargement des libs).").arg(loader));
+            return true;
+        }
     }
+    // Persiste le pack sur disque pour que le loader soit bien présent au lancement.
+    profile->saveNow();
+    mcInst->saveNow();
     emit notification("ok", tr("Instance « %1 » + %2 %3 installé.")
                               .arg(name, loader, latest->descriptor()));
     return true;
