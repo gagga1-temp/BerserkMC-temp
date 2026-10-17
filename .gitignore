@@ -6,6 +6,7 @@ resources/CMakeFiles
 *~
 *.swp
 html/
+README.fork.md
 
 # Project Files
 *.pro.user
@@ -17,6 +18,10 @@ CMakeLists.txt.user.*
 cmake-build-*/
 Debug
 .cache
+/_mockups/
+deploy.sh
+dev-qml.sh
+package-release.sh
 
 # Build dirs
 build
