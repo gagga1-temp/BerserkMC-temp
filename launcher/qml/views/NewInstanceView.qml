@@ -339,12 +339,14 @@ Rectangle {
                                 Repeater {
                                     model: [ "Aucun", "Fabric", "Forge", "Quilt", "NeoForge" ]
                                     delegate: Rectangle {
+                                        property bool pillEnabled: modelData === "Aucun" || (page.selectedVersion.length > 0 && App.loaderAvailable(page.selectedVersion, modelData))
                                         implicitHeight: 32
                                         implicitWidth: pillText.implicitWidth + 24
                                         radius: 999
+                                        opacity: pillEnabled ? 1.0 : 0.4
                                         color: page.selectedLoader === modelData
                                             ? Theme.accentSoft
-                                            : (pillHover.containsMouse ? Theme.bgElevated : Theme.bgSurface)
+                                            : (pillHover.containsMouse && pillEnabled ? Theme.bgElevated : Theme.bgSurface)
                                         border.color: page.selectedLoader === modelData ? Theme.accentRing : Theme.borderSubtle
                                         border.width: 1
                                         Behavior on color { ColorAnimation { duration: Theme.durFast } }
@@ -360,12 +362,15 @@ Rectangle {
                                             id: pillHover
                                             anchors.fill: parent
                                             hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
+                                            cursorShape: pillEnabled ? Qt.PointingHandCursor : Qt.ForbiddenCursor
                                             onClicked: {
+                                                if (!pillEnabled) return
                                                 page.selectedLoader = modelData
                                                 page.applyAutoName()
                                             }
                                         }
+                                        ToolTip.visible: !pillEnabled && pillHover.containsMouse
+                                        ToolTip.text: qsTr("Pas de version pour Minecraft %1").arg(page.selectedVersion)
                                     }
                                 }
                             }

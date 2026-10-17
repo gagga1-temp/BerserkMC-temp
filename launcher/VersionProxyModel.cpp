@@ -317,12 +317,10 @@ void VersionProxyModel::setSourceModel(QAbstractItemModel *replacingRaw)
     {
         m_columns.push_back(Name);
     }
-    /*
     if(roles.contains(BaseVersionList::ParentVersionRole))
     {
         m_columns.push_back(ParentVersion);
     }
-    */
     if(roles.contains(BaseVersionList::ArchitectureRole))
     {
         m_columns.push_back(Architecture);

@@ -706,6 +706,14 @@ bool QmlBridge::createVanillaInstance(const QString &name, const QString &versio
         return false;
     }
 
+    // Pre-check : le loader choisi doit exister pour cette version de Minecraft.
+    if (!loader.isEmpty() && loader != "Aucun") {
+        if (!loaderAvailable(version, loader)) {
+            emit notification("error", tr("Aucune version de %1 pour Minecraft %2.").arg(loader, version));
+            return false;
+        }
+    }
+
     auto task = new InstanceCreationTask(baseVer);
     task->setName(name);
     task->setGroup(APPLICATION->settings()->get("LastUsedGroupForNewInstance").toString());
@@ -811,6 +819,42 @@ bool QmlBridge::createVanillaInstance(const QString &name, const QString &versio
     emit notification("ok", tr("Instance « %1 » + %2 %3 installé.")
                               .arg(name, loader, latest->descriptor()));
     return true;
+}
+
+bool QmlBridge::loaderAvailable(const QString &mcVersion, const QString &loader)
+{
+    if (loader == "Aucun" || loader.trimmed().isEmpty()) return true;
+    QString uid;
+    if      (loader == "Fabric")   uid = "net.fabricmc.fabric-loader";
+    else if (loader == "Forge")    uid = "net.minecraftforge";
+    else if (loader == "Quilt")    uid = "org.quiltmc.quilt-loader";
+    else if (loader == "NeoForge") uid = "net.neoforged";
+    else return true;
+
+    auto idx = APPLICATION ? APPLICATION->metadataIndex() : nullptr;
+    if (!idx) return true;
+    auto vl = idx->get(uid);
+    if (!vl) return true;
+
+    if (!vl->isLoaded()) {
+        auto task = vl->getLoadTask();
+        if (task) {
+            QEventLoop loop;
+            QObject::connect(task.get(), &Task::succeeded, &loop, &QEventLoop::quit);
+            QObject::connect(task.get(), &Task::failed, &loop, &QEventLoop::quit);
+            task->start();
+            loop.exec();
+        }
+    }
+    if (!vl->isLoaded()) return true;
+
+    for (int i = 0; i < vl->count(); ++i) {
+        auto cand = vl->at(i);
+        if (!cand) continue;
+        const QString parent = vl->data(vl->index(i, 0), BaseVersionList::ParentVersionRole).toString();
+        if (parent.isEmpty() || parent == mcVersion) return true;
+    }
+    return false;
 }
 
 void QmlBridge::openFolder(const QString &kind)
