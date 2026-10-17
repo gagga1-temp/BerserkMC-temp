@@ -65,8 +65,8 @@ but not:
 - The API tokens required to talk to the services the launcher depends on.
 
 Because of the nature of the agreements required to interact with the Microsoft
-identity platform, the upstream source has been debranded and builds as
-`DevLauncher` by default. You must provide your own branding if you want to
+identity platform, the upstream source has been debranded and builds without a
+product name by default. You must provide your own branding if you want to
 distribute your own builds, and register your own app on Azure to handle
 Microsoft account logins.
 

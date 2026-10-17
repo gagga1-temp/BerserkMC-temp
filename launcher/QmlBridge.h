@@ -85,6 +85,8 @@ public slots:
     // meta cache instead of hitting Mojang directly).
     Q_INVOKABLE QVariantList minecraftVersions();
     Q_INVOKABLE bool minecraftVersionsLoading() const { return m_mcVersionsLoading; }
+    Q_INVOKABLE bool minecraftVersionsFailed() const { return m_mcVersionsFailed; }
+    Q_INVOKABLE void retryMinecraftVersions();
 
 signals:
     void accountsChanged();
@@ -97,6 +99,7 @@ private slots:
     void onAccountsChanged();
     void onInstancesChanged();
     void onMinecraftVersionsLoaded();
+    void onMinecraftVersionsFailed();
 
 private:
     QVariantList m_accounts;
@@ -107,6 +110,7 @@ private:
     QVariantList m_mcVersions;
     bool m_mcVersionsLoading = false;
     bool m_mcVersionsLoaded = false;
+    bool m_mcVersionsFailed = false;
 
     void rebuildMinecraftVersions();
 

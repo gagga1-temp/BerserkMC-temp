@@ -642,15 +642,22 @@ QVariantList QmlBridge::minecraftVersions()
     auto vl = idx->get("net.minecraft");
     if (!vl) return m_mcVersions;
 
-    if (!vl->isLoaded()) {
-        if (!m_mcVersionsLoading) {
-            m_mcVersionsLoading = true;
-            auto task = vl->getLoadTask();
-            if (task) {
-                connect(task.get(), &Task::succeeded, this, &QmlBridge::onMinecraftVersionsLoaded);
-                connect(task.get(), &Task::failed, this, &QmlBridge::onMinecraftVersionsLoaded);
-                task->start();
-            }
+    // Only (re)start a load when we are neither already loading nor in a failed
+    // state. Without the failed guard a failing download (e.g. a broken TLS
+    // backend) would be retried in an endless loop from onVersionListChanged.
+    if (!vl->isLoaded() && !m_mcVersionsLoading && !m_mcVersionsFailed) {
+        m_mcVersionsLoading = true;
+        auto task = vl->getLoadTask();
+        if (task) {
+            connect(task.get(), &Task::succeeded, this, &QmlBridge::onMinecraftVersionsLoaded);
+            connect(task.get(), &Task::failed, this, &QmlBridge::onMinecraftVersionsFailed);
+            task->start();
+        } else {
+            // Nothing to run and still not loaded: report failure instead of
+            // leaving the UI stuck on a spinner forever.
+            m_mcVersionsLoading = false;
+            m_mcVersionsFailed = true;
+            emit versionListChanged();
         }
     }
     // load() parses the local meta file synchronously, so the data may already
@@ -658,6 +665,7 @@ QVariantList QmlBridge::minecraftVersions()
     if (vl->isLoaded() && !m_mcVersionsLoaded) {
         m_mcVersionsLoaded = true;
         m_mcVersionsLoading = false;
+        m_mcVersionsFailed = false;
         rebuildMinecraftVersions();
         emit versionListChanged();
     }
@@ -668,7 +676,26 @@ void QmlBridge::onMinecraftVersionsLoaded()
 {
     m_mcVersionsLoading = false;
     m_mcVersionsLoaded = true;
+    m_mcVersionsFailed = false;
     rebuildMinecraftVersions();
+    emit versionListChanged();
+}
+
+void QmlBridge::onMinecraftVersionsFailed()
+{
+    m_mcVersionsLoading = false;
+    m_mcVersionsFailed = true;
+    rebuildMinecraftVersions();
+    emit versionListChanged();
+}
+
+void QmlBridge::retryMinecraftVersions()
+{
+    // Called from the "Réessayer" button: clear the failed latch so the next
+    // minecraftVersions() call is allowed to start a fresh download.
+    m_mcVersionsFailed = false;
+    m_mcVersionsLoaded = false;
+    m_mcVersionsLoading = false;
     emit versionListChanged();
 }
 

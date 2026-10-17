@@ -25,6 +25,13 @@ Rectangle {
     signal shortcutRequested()
     signal deleteRequested()
 
+    // Mode d'affichage selon la hauteur réellement disponible
+    readonly property bool compact: height < 640
+    readonly property bool tight:   height < 520
+    readonly property int  pad:      tight ? 12 : (compact ? 16 : 24)
+    readonly property int  gap:      tight ? 8  : (compact ? 12 : 16)
+    readonly property int  heroSize: tight ? 56 : (compact ? 84 : 112)
+
     color: Theme.bgSurface
 
     Rectangle {
@@ -33,27 +40,37 @@ Rectangle {
         color: Theme.borderSubtle
     }
 
-    ColumnLayout {
+    Flickable {
+        id: scroller
         anchors.fill: parent
-        anchors.margins: 24
-        spacing: 16
+        clip: true
+        contentWidth: width
+        contentHeight: content.implicitHeight + side.pad * 2
+        boundsBehavior: Flickable.StopAtBounds
+        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+        ColumnLayout {
+            id: content
+            x: side.pad; y: side.pad
+            width: scroller.width - side.pad * 2
+            spacing: side.gap
 
         // ===== Hero =====
         Column {
             Layout.alignment: Qt.AlignHCenter
-            spacing: 10
+            spacing: side.gap
 
             // Icon tile with a subtle accent backdrop for visual weight.
             Item {
                 anchors.horizontalCenter: parent.horizontalCenter
-                implicitWidth: 112
-                implicitHeight: 112
+                implicitWidth: side.heroSize
+                implicitHeight: side.heroSize
 
                 // Soft halo behind the icon
                 Rectangle {
                     anchors.centerIn: parent
-                    width: 132; height: 132
-                    radius: 66
+                    width: side.heroSize + 20; height: width
+                    radius: width / 2
                     color: Theme.accentGlow2
                     opacity: 0.9
                 }
@@ -68,7 +85,7 @@ Rectangle {
                     anchors.centerIn: parent
                     source: side.instance.iconSource || "qrc:/icons/berserkmc/256x256/minecraft.png"
                     sourceSize.width: 200; sourceSize.height: 200
-                    width: 84; height: 84
+                    width: side.heroSize * 0.75; height: width
                     fillMode: Image.PreserveAspectFit
                     smooth: true
                 }
@@ -79,7 +96,7 @@ Rectangle {
                 text: side.instance.name
                 color: Theme.textPrimary
                 font.family: Theme.fontBody
-                font.pointSize: 15
+                font.pointSize: side.tight ? 12 : 15
                 font.weight: Font.Bold
                 font.letterSpacing: -0.2
             }
@@ -88,7 +105,7 @@ Rectangle {
                 text: side.instance.sub
                 color: Theme.textDim
                 font.family: Theme.fontBody
-                font.pointSize: 9
+                font.pointSize: side.tight ? 8 : 9
             }
         }
 
@@ -162,6 +179,7 @@ Rectangle {
         // ===== Stats =====
         Row {
             Layout.fillWidth: true
+            visible: !side.tight      // an invisible item is ignored by the layout
             spacing: 6
             Rectangle {
                 width: (parent.width - 6) / 2; height: 56
@@ -258,17 +276,19 @@ Rectangle {
                     onClicked: morePane.moreOpen = !morePane.moreOpen
                 }
 
-                Column {
+                GridLayout {
                     id: more
                     Layout.fillWidth: true
                     visible: morePane.moreOpen
-                    spacing: 0
-                    IconButton { width: parent.width; variant: "ghost";  iconName: "camera"; text: qsTr("Screenshots");      onClicked: side.openScreenshots() }
-                    IconButton { width: parent.width; variant: "ghost";  iconName: "note";   text: qsTr("Notes");           onClicked: side.openNotes() }
-                    IconButton { width: parent.width; variant: "ghost";  iconName: "copy";   text: qsTr("Dupliquer");       onClicked: side.duplicateRequested() }
-                    IconButton { width: parent.width; variant: "ghost";  iconName: "upload"; text: qsTr("Exporter");        onClicked: side.exportRequested() }
-                    IconButton { width: parent.width; variant: "ghost";  iconName: "link";   text: qsTr("Raccourci bureau"); onClicked: side.shortcutRequested() }
-                    IconButton { width: parent.width; variant: "danger"; iconName: "trash";  text: qsTr("Supprimer");       onClicked: side.deleteRequested() }
+                    columns: 2
+                    columnSpacing: 0
+                    rowSpacing: 0
+                    IconButton { Layout.fillWidth: true; variant: "ghost";  iconName: "camera"; text: qsTr("Screenshots"); onClicked: side.openScreenshots() }
+                    IconButton { Layout.fillWidth: true; variant: "ghost";  iconName: "note";   text: qsTr("Notes");       onClicked: side.openNotes() }
+                    IconButton { Layout.fillWidth: true; variant: "ghost";  iconName: "copy";   text: qsTr("Dupliquer");   onClicked: side.duplicateRequested() }
+                    IconButton { Layout.fillWidth: true; variant: "ghost";  iconName: "upload"; text: qsTr("Exporter");    onClicked: side.exportRequested() }
+                    IconButton { Layout.fillWidth: true; variant: "ghost";  iconName: "link";   text: qsTr("Raccourci");   onClicked: side.shortcutRequested() }
+                    IconButton { Layout.fillWidth: true; variant: "danger"; iconName: "trash";  text: qsTr("Supprimer");   onClicked: side.deleteRequested() }
                 }
             }
 
@@ -276,5 +296,6 @@ Rectangle {
         }
 
         Item { Layout.fillHeight: true }
+        }
     }
 }

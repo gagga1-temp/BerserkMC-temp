@@ -120,6 +120,12 @@ Objectif : plus besoin d'aller dans les réglages de l'instance choisir Java à 
 
 ---
 
+## P6 — Correctifs de compatibilité jeu
+
+- [x] **"Multiplayer is disabled" sur MC 1.16.4/1.16.5 (compte offline)** — l'AuthLib embarquée dans ces versions ne contrôle pas le code HTTP des serveurs d'auth Mojang ; après le changement côté Mojang, une session non-authentifiée reçoit un JSON « valide » mal interprété → boutons Multiplayer/Realms grisés (« Multiplayer is disabled. Please check your Microsoft account settings. »), solo non touché. → nouveau `MinecraftInstance::processAuthArgs()` : en session `AuthSession::PlayableOffline` **et** version MC `1.16.4`/`1.16.5`, ajoute `-Dminecraft.api.env=custom` + les quatre hosts (`auth`/`account`/`session`/`services`) pointés vers `https://invalid.invalid`, ce qui transforme l'appel en échec réseau que l'ancien AuthLib gère correctement. `LauncherPartLaunch::executeTask` injecte ces args **avant** `javaArguments()` → les JVM args custom de l'instance restent surchargeables. Porté depuis PollyMC (commit `639a782`, « Fix offline multiplayer in 1.16.4-1.16.5 »). Vérifié : build MSYS2 OK, chaînes présentes dans `BerserkMC.exe`. Aucun effet sur les autres versions (le bug n'existe pas sur 1.17+) ni sur les serveurs `online-mode=true` (contrôle côté serveur). Réf. : `FabricMC/fabric-loom#915` (commentaire 1609154390).
+
+---
+
 ## Notes
 
 - Les headers de copyright `/* Copyright ... MultiMC Contributors */` (234 occurrences) sont **requis** par la licence Apache-2.0 → ne pas toucher.

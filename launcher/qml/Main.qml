@@ -23,6 +23,13 @@ ApplicationWindow {
     flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowSystemMenuHint
           | Qt.WindowMinMaxButtonsHint | Qt.WindowCloseButtonHint
 
+    // Quit-on-last-window-closed is disabled in C++ (Application.cpp) and this
+    // QML shell is not wired to the legacy Widgets close path, so without this
+    // the process would keep running after the window is closed. Quitting here
+    // only ends the launcher; a running Minecraft process is spawn-detached and
+    // keeps going.
+    onClosing: Qt.quit()
+
     // Bridge-backed state. `App` is set as a context property from
     // Application::showQmlMainWindow().
     readonly property bool   hasAccount:  typeof App !== "undefined" && App.hasAccount

@@ -370,6 +370,32 @@ QStringList MinecraftInstance::javaArguments() const
     return args;
 }
 
+QStringList MinecraftInstance::processAuthArgs(AuthSessionPtr session) const
+{
+    QStringList args;
+    // BerserkMC: on 1.16.4/1.16.5 the bundled AuthLib mishandles the response
+    // Mojang's (changed) auth servers return for an unauthenticated session, which
+    // greys out Multiplayer/Realms in the main menu. Point AuthLib at an unreachable
+    // host so the request fails like a plain network error, which the old AuthLib
+    // handles correctly and keeps Multiplayer enabled.
+    // See https://github.com/FabricMC/fabric-loom/issues/915#issuecomment-1609154390
+    if (session && session->status == AuthSession::PlayableOffline) {
+        auto profile = m_components->getProfile();
+        if (profile) {
+            const QString version = profile->getMinecraftVersion();
+            if (version == "1.16.4" || version == "1.16.5") {
+                const QString invalidHost = "https://invalid.invalid";
+                args << "-Dminecraft.api.env=custom";
+                args << "-Dminecraft.api.auth.host=" + invalidHost;
+                args << "-Dminecraft.api.account.host=" + invalidHost;
+                args << "-Dminecraft.api.session.host=" + invalidHost;
+                args << "-Dminecraft.api.services.host=" + invalidHost;
+            }
+        }
+    }
+    return args;
+}
+
 QMap<QString, QString> MinecraftInstance::getVariables() const
 {
     QMap<QString, QString> out;

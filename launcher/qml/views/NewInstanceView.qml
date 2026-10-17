@@ -460,7 +460,11 @@ Rectangle {
                                         variant: "filled"
                                         dense: true
                                         text: qsTr("Réessayer")
-                                        onClicked: page.refreshVersions()
+                                        onClicked: {
+                                            if (typeof App !== "undefined")
+                                                App.retryMinecraftVersions()
+                                            page.refreshVersions()
+                                        }
                                     }
                                 }
                             }

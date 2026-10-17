@@ -61,7 +61,9 @@ void LauncherPartLaunch::executeTask()
     std::shared_ptr<MinecraftInstance> minecraftInstance = std::dynamic_pointer_cast<MinecraftInstance>(instance);
 
     m_launchScript = minecraftInstance->createLaunchScript(m_session, m_quickPlayTarget);
-    QStringList args = minecraftInstance->javaArguments();
+    // Auth workaround args go first so user-specified JVM args can still override them.
+    QStringList args = minecraftInstance->processAuthArgs(m_session);
+    args.append(minecraftInstance->javaArguments());
     QString allArgs = args.join(", ");
     emit logLine("Java Arguments:\n[" + m_parent->censorPrivateInfo(allArgs) + "]\n\n", MessageLevel::Launcher);
 

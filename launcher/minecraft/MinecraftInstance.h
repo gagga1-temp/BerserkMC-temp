@@ -85,6 +85,8 @@ public:
     QString createLaunchScript(AuthSessionPtr session, QuickPlayTargetPtr quickPlayTarget);
     /// get arguments passed to java
     QStringList javaArguments() const;
+    /// get game-side auth workaround arguments (offline mode, e.g. 1.16.4/1.16.5 multiplayer fix)
+    QStringList processAuthArgs(AuthSessionPtr session) const;
 
     /// get variables for launch command variable substitution/environment
     QMap<QString, QString> getVariables() const override;
