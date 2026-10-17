@@ -28,9 +28,7 @@ BerserkMC is offline-only by design:
   from the launcher.
 
 Existing Microsoft accounts found in `accounts.json` are converted to offline
-accounts automatically on startup. See [README.fork.md](README.fork.md) for the
-full list of changes and the reasoning behind them.
-
+accounts automatically on startup.
 ## Building
 
 Build instructions live in [BUILD.md](BUILD.md). BerserkMC targets Qt 5.15 with
