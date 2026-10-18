@@ -157,11 +157,10 @@ set(Launcher_META_URL "https://meta.multimc.org/v1/")
 set(Launcher_PASTE_EE_API_KEY "utLvciUouSURFzfjPxLBf5W4ISsUX4pwBDF7N1AfZ")
 # Azure application (client) ID used for the Microsoft / Xbox Live sign-in. The
 # consent page Microsoft shows displays the NAME of the application registered
-# for this ID, so the historical MultiMC app shows up as "MultiMC". To have the
-# page show another name, register a new application in Microsoft Entra ID
-# (public client, XboxLive.signin + offline_access) and configure its ID here:
-#     cmake -B <build> -DLauncher_MSA_CLIENT_ID=<application-guid>
-set(Launcher_MSA_CLIENT_ID "499546d9-bbfe-4b9b-a086-eb3d75afb78f" CACHE STRING
+# for this ID. This is the "BerserkMC" application (public client, native
+# redirect URI, XboxLive.signin + offline_access), so the page shows BerserkMC.
+# Override with -DLauncher_MSA_CLIENT_ID=<application-guid> if needed.
+set(Launcher_MSA_CLIENT_ID "04551822-629a-4d28-a8ee-00b92eac50b4" CACHE STRING
     "Azure application (client) ID used for the Microsoft sign-in")
 set(Launcher_IMGUR_CLIENT_ID "5b97b0713fba4a3")
 set(Launcher_BUG_TRACKER_URL "https://github.com/gagga1/BerserkMC/issues")

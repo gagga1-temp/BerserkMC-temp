@@ -501,8 +501,27 @@ void AccountsDialog::stopLogin()
     ui->copyLinkButton->setVisible(false);
 }
 
+// The dedicated BerserkMC Azure application is still waiting for Mojang's
+// approval, so Microsoft's consent page refuses every sign-in attempt. Keep
+// the sign-in page visible and explain why, instead of starting a flow that
+// can only fail. Set this back to true once the approval arrives.
+static constexpr bool microsoftSignInAvailable = false;
+
 void AccountsDialog::startLogin()
 {
+    if (!microsoftSignInAvailable)
+    {
+        ui->getFreshCodeButton->setEnabled(false);
+        ui->getFreshCodeButton->setToolTip(tr("Sorry, we are waiting for Mojang to approve our application."));
+        ui->linkButton->setVisible(false);
+        ui->copyLinkButton->setVisible(false);
+        ui->progressBar->setVisible(false);
+        ui->label->setText(tr("Microsoft sign-in is coming back soon: the BerserkMC application is waiting "
+                              "for Mojang's approval.\n\n"
+                              "In the meantime you can play with an offline account (button below)."));
+        return;
+    }
+
     ui->getFreshCodeButton->setEnabled(false);
     ui->linkButton->setVisible(false);
     ui->copyLinkButton->setVisible(false);

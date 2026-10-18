@@ -584,6 +584,76 @@ Rectangle {
         }
     }
 
+    // ===== Modal popup: Microsoft sign-in temporarily unavailable =====
+    // Shown when the (still visible) Microsoft button is clicked, so the user
+    // learns why nothing starts instead of facing a dead button.
+    Popup {
+        id: msPendingPopup
+        modal: true
+        focus: true
+        anchors.centerIn: Overlay.overlay
+        implicitWidth: 460
+        implicitHeight: 292
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
+
+        background: Rectangle {
+            color: Theme.bgElevated
+            radius: Theme.radiusLg
+            border.color: Theme.borderSubtle
+            border.width: 1
+        }
+        Overlay.modal: Rectangle { color: Qt.rgba(0, 0, 0, 0.45) }
+
+        contentItem: ColumnLayout {
+            spacing: 14
+
+            Column {
+                Layout.fillWidth: true
+                spacing: 4
+
+                Text {
+                    text: qsTr("Connexion Microsoft bientôt de retour")
+                    color: Theme.textPrimary
+                    font.family: Theme.fontBody
+                    font.pointSize: 14
+                    font.weight: Font.Bold
+                }
+                Text {
+                    width: parent.width
+                    text: qsTr("Désolé, notre demande d'application est encore en cours d'examen chez Mojang. La connexion avec un compte Microsoft s'activera toute seule dès qu'elle sera acceptée.")
+                    color: Theme.textDim
+                    font.family: Theme.fontBody
+                    font.pointSize: 10
+                    wrapMode: Text.WordWrap
+                }
+            }
+
+            Rectangle { Layout.fillWidth: true; height: 1; color: Theme.borderSubtle }
+
+            Text {
+                Layout.fillWidth: true
+                text: qsTr("En attendant, tu peux jouer avec un compte hors-ligne : les instances, les mondes et les réglages ne sont pas touchés.")
+                color: Theme.textMuted
+                font.family: Theme.fontBody
+                font.pointSize: 10
+                wrapMode: Text.WordWrap
+            }
+
+            Item { Layout.fillHeight: true }
+
+            Row {
+                Layout.alignment: Qt.AlignRight
+                spacing: 8
+                IconButton {
+                    variant: "primary"
+                    iconName: "check"
+                    text: qsTr("Compris")
+                    onClicked: msPendingPopup.close()
+                }
+            }
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -632,33 +702,39 @@ Rectangle {
                         Layout.bottomMargin: 4
                     }
 
-                    // Empty state inside the left list
-                    Column {
+                    // Empty state: takes all the free height so the two "add"
+                    // buttons below stay grouped together instead of being
+                    // spread apart by the leftover space.
+                    Item {
                         Layout.fillWidth: true
-                        Layout.alignment: Qt.AlignHCenter
-                        spacing: 8
-                        visible: accounts.count === 0
+                        Layout.fillHeight: true
                         Layout.topMargin: 16
-                        Icon {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            name: "user"
-                            color: Theme.textDim
-                            size: 36
-                        }
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: qsTr("Aucun compte")
-                            color: Theme.textMuted
-                            font.family: Theme.fontBody
-                            font.pointSize: 11
-                            font.weight: Font.DemiBold
-                        }
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: qsTr("Ajoute-en un avec les boutons ci-dessous.")
-                            color: Theme.textDim
-                            font.family: Theme.fontBody
-                            font.pointSize: 9
+                        visible: accounts.count === 0
+
+                        Column {
+                            anchors.centerIn: parent
+                            spacing: 8
+                            Icon {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                name: "user"
+                                color: Theme.textDim
+                                size: 36
+                            }
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: qsTr("Aucun compte")
+                                color: Theme.textMuted
+                                font.family: Theme.fontBody
+                                font.pointSize: 11
+                                font.weight: Font.DemiBold
+                            }
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: qsTr("Ajoute-en un avec les boutons ci-dessous.")
+                                color: Theme.textDim
+                                font.family: Theme.fontBody
+                                font.pointSize: 9
+                            }
                         }
                     }
 
@@ -759,12 +835,22 @@ Rectangle {
                         text: qsTr("Ajouter compte hors-ligne")
                         onClicked: page.promptOfflineAccount()
                     }
+                    // Microsoft sign-in is parked until Mojang approves the
+                    // dedicated BerserkMC Azure app ID: starting the flow now
+                    // would only end on Microsoft's consent error page. The
+                    // button stays in place, tells the reason on hover and
+                    // opens the same explanation on click. Wire it back to
+                    // page.openMicrosoftLogin() once the approval lands.
                     IconButton {
+                        id: msAddButton
                         Layout.fillWidth: true
                         variant: "filled"
                         iconName: "link"
                         text: qsTr("Ajouter un compte Microsoft")
-                        onClicked: page.openMicrosoftLogin()
+                        onClicked: msPendingPopup.open()
+                        ToolTip.visible: msAddButton.hovered
+                        ToolTip.delay: 250
+                        ToolTip.text: qsTr("Désolé, en attente de validation par Mojang — la connexion Microsoft arrive bientôt")
                     }
                 }
             }

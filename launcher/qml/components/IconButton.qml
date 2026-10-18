@@ -18,6 +18,10 @@ Rectangle {
     property bool dangerOnHover: variant === "danger"
     signal clicked()
 
+    // Lets callers react to hovering (tooltips, hints) without having to
+    // re-implement the mouse tracking on top of the button.
+    readonly property bool hovered: hover.containsMouse
+
     implicitHeight: dense ? 28 : 36
     implicitWidth: row.implicitWidth + (dense ? 16 : 24)
     radius: Theme.radiusMd
