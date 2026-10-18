@@ -809,7 +809,22 @@ bool QmlBridge::createVanillaInstance(const QString &name, const QString &versio
         return true;
     }
 
-    profile->setComponentVersion(loaderUid, latest->descriptor(), true);
+    // A freshly committed instance hands out a PackProfile that has not been
+    // read from disk yet. An unloaded profile silently drops every save (see
+    // PackProfile::scheduleSave), so the loader we pin below would never reach
+    // mmc-pack.json and the instance would launch as vanilla. Load (and
+    // resolve) the real profile first — the same step the classic instance
+    // page performs before touching components.
+    profile->reload(Net::Mode::Online);
+    if (auto loadTask = profile->getCurrentTask()) {
+        ProgressDialog ld(nullptr);
+        ld.execWithTask(loadTask.get());
+    }
+
+    if (!profile->setComponentVersion(loaderUid, latest->descriptor(), true)) {
+        emit notification("error", tr("Impossible d'ajouter %1 au profil.").arg(loader));
+        return true;
+    }
     // setComponentVersion only records the choice; resolve() fetches the
     // component metadata and its libraries for the freshly created instance.
     profile->resolve(Net::Mode::Online);
