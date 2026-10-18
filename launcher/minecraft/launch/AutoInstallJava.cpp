@@ -63,6 +63,18 @@ void AutoInstallJava::executeTask()
         return;
     }
 
+    // Never launch a runtime we installed ourselves when its payload is
+    // incomplete: it can only pop up an error dialog and stall the check.
+    const QString managedRoot = JavaInstaller::managedJavaFolder() + QLatin1Char('/');
+    if (configuredPath.startsWith(managedRoot, Qt::CaseInsensitive)
+        && !JavaInstaller::isUsableRuntime(configuredPath)) {
+        emit logLine(tr("The installed Java %1 runtime is incomplete; it will be installed again.")
+                         .arg(m_installMajor),
+                     MessageLevel::Warning);
+        startInstallOrAdopt();
+        return;
+    }
+
     emit logLine(tr("Checking the configured Java against the Java %1 requirement...")
                      .arg(m_requiredMajor),
                  MessageLevel::Launcher);
