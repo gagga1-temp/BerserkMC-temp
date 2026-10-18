@@ -26,6 +26,12 @@ Rectangle {
     // The name field is pre-filled from the current selection, but stays fully
     // editable: as soon as the user types (or clears) it we stop overwriting it.
     property bool nameEdited: false
+    // Loader compatibility filter, recomputed whenever the loader pill changes.
+    // Mirrors QmlBridge::loaderVersionFilter():
+    //   ok       - the loader index could be loaded
+    //   all      - the loader runs on every Minecraft version (Fabric/Quilt)
+    //   versions - the Minecraft versions the loader targets when all is false
+    property var loaderFilter: ({ ok: true, all: true, versions: [] })
 
     // The Create button is only valid once a name and a version are known —
     // this blocks the old "fires with the default version before load" path.
@@ -55,34 +61,68 @@ Rectangle {
     ListModel { id: allVersions }
     ListModel { id: versions }     // filtered view bound to the list UI
 
+    // ---- Loader compatibility filtering -----------------------------------
+    // Selecting a mod loader narrows the Minecraft version list to the versions
+    // that loader actually targets (Forge/NeoForge pin exact versions;
+    // Fabric/Quilt match every version). The index may need a one-shot download,
+    // so this mirrors the previous blocking load but runs only when the pill
+    // changes instead of on every list row.
+    function refreshLoaderFilter() {
+        if (typeof App === "undefined") {
+            page.loaderFilter = ({ ok: true, all: true, versions: [] })
+            return
+        }
+        page.loaderFilter = App.loaderVersionFilter(page.selectedLoader)
+    }
+
+    function loaderMatches(id) {
+        if (page.selectedLoader.length === 0 || page.selectedLoader === "Aucun")
+            return true
+        var f = page.loaderFilter
+        if (!f || !f.ok || f.all) return true
+        return f.versions.indexOf(id) >= 0
+    }
+
+    function versionInList(id) {
+        for (var i = 0; i < versions.count; ++i) {
+            if (versions.get(i).id_ === id) return true
+        }
+        return false
+    }
+
     function rebuildVersions() {
         versions.clear()
         var seen = 0
         for (var i = 0; i < allVersions.count; ++i) {
             var v = allVersions.get(i)
+            if (!loaderMatches(v.id_)) continue
             var keep = false
             if (page.filter === "all") keep = true
             else if (page.filter === "release") keep = (v.type === "release")
             else if (page.filter === "snapshot") keep = (v.type === "snapshot")
             else if (page.filter === "old") keep = (v.type === "old_beta" || v.type === "old_alpha")
-            if (keep) {
-                versions.append({
-                    id_: v.id_,
-                    badge: v.id_ === page.latestRelease ? "LATEST"
-                         : v.id_ === page.latestSnapshot ? "SNAPSHOT"
-                         : v.type.replace("_", " ").toUpperCase(),
-                    type: v.type
-                })
-                seen++
-                if (seen >= 400) break    // cap render cost; old Minecraft has 1000+ snaps
-            }
+            if (!keep) continue
+            versions.append({
+                id_: v.id_,
+                badge: v.id_ === page.latestRelease ? "LATEST"
+                     : v.id_ === page.latestSnapshot ? "SNAPSHOT"
+                     : v.type.replace("_", " ").toUpperCase(),
+                type: v.type
+            })
+            seen++
+            if (seen >= 400) break    // cap render cost; old Minecraft has 1000+ snaps
         }
-        // Auto-select the first match, but never clobber a user's choice.
-        if (page.selectedVersion.length === 0 && versions.count > 0)
-            page.selectedVersion = versions.get(0).id_
+        // Keep the selection valid for the active loader + filter: if the
+        // current pick is no longer offered, fall back to the newest match.
+        if (!versionInList(page.selectedVersion))
+            page.selectedVersion = versions.count > 0 ? versions.get(0).id_ : ""
         page.applyAutoName()
     }
     onFilterChanged: rebuildVersions()
+    onSelectedLoaderChanged: {
+        refreshLoaderFilter()
+        rebuildVersions()
+    }
 
     // Suggested name derived from the current selection (version + loader).
     function defaultInstanceName() {
@@ -124,6 +164,7 @@ Rectangle {
         page.loadError = (!page.loadingVersions && allVersions.count === 0)
             ? qsTr("Aucune version disponible (métadonnées Minecraft non chargées).")
             : ""
+        refreshLoaderFilter()
         rebuildVersions()
     }
 
@@ -144,7 +185,9 @@ Rectangle {
             title: qsTr("Nouvelle instance")
             subtitle: page.loadingVersions
                 ? qsTr("Chargement du manifest…")
-                : qsTr("%1 versions disponibles").arg(versions.count)
+                : (page.selectedLoader.length > 0 && page.selectedLoader !== "Aucun"
+                    ? qsTr("%1 versions compatibles avec %2").arg(versions.count).arg(page.selectedLoader)
+                    : qsTr("%1 versions disponibles").arg(versions.count))
             onBack: page.back()
         }
 
@@ -339,14 +382,12 @@ Rectangle {
                                 Repeater {
                                     model: [ "Aucun", "Fabric", "Forge", "Quilt", "NeoForge" ]
                                     delegate: Rectangle {
-                                        property bool pillEnabled: modelData === "Aucun" || (page.selectedVersion.length > 0 && App.loaderAvailable(page.selectedVersion, modelData))
                                         implicitHeight: 32
                                         implicitWidth: pillText.implicitWidth + 24
                                         radius: 999
-                                        opacity: pillEnabled ? 1.0 : 0.4
                                         color: page.selectedLoader === modelData
                                             ? Theme.accentSoft
-                                            : (pillHover.containsMouse && pillEnabled ? Theme.bgElevated : Theme.bgSurface)
+                                            : (pillHover.containsMouse ? Theme.bgElevated : Theme.bgSurface)
                                         border.color: page.selectedLoader === modelData ? Theme.accentRing : Theme.borderSubtle
                                         border.width: 1
                                         Behavior on color { ColorAnimation { duration: Theme.durFast } }
@@ -362,15 +403,11 @@ Rectangle {
                                             id: pillHover
                                             anchors.fill: parent
                                             hoverEnabled: true
-                                            cursorShape: pillEnabled ? Qt.PointingHandCursor : Qt.ForbiddenCursor
-                                            onClicked: {
-                                                if (!pillEnabled) return
-                                                page.selectedLoader = modelData
-                                                page.applyAutoName()
-                                            }
+                                            cursorShape: Qt.PointingHandCursor
+                                            // Selecting a loader re-filters the Minecraft
+                                            // list below (onSelectedLoaderChanged).
+                                            onClicked: page.selectedLoader = modelData
                                         }
-                                        ToolTip.visible: !pillEnabled && pillHover.containsMouse
-                                        ToolTip.text: qsTr("Pas de version pour Minecraft %1").arg(page.selectedVersion)
                                     }
                                 }
                             }

@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QVariantList>
+#include <QVariantMap>
 #include <QString>
 
 #include "minecraft/auth/MinecraftAccount.h"
@@ -86,6 +87,11 @@ public slots:
     void deleteInstance(const QString &instanceId);
     Q_INVOKABLE bool createVanillaInstance(const QString &name, const QString &version, const QString &loader);
     Q_INVOKABLE bool loaderAvailable(const QString &mcVersion, const QString &loader);
+    // Version-list filter for a mod-loader choice. Returns a map with:
+    //   ok       - the loader index could be loaded (online or cached)
+    //   all      - the loader runs on every Minecraft version (Fabric/Quilt)
+    //   versions - the Minecraft versions the loader targets when all is false
+    Q_INVOKABLE QVariantMap loaderVersionFilter(const QString &loader);
     Q_INVOKABLE bool importInstance(const QString &source);
     Q_INVOKABLE QString pickImportFile();
 

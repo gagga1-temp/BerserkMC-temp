@@ -844,20 +844,24 @@ bool QmlBridge::createVanillaInstance(const QString &name, const QString &versio
     return true;
 }
 
-bool QmlBridge::loaderAvailable(const QString &mcVersion, const QString &loader)
+QVariantMap QmlBridge::loaderVersionFilter(const QString &loader)
 {
-    if (loader == "Aucun" || loader.trimmed().isEmpty()) return true;
+    QVariantMap out;
+    out["ok"] = true;
+    out["all"] = true;
+    out["versions"] = QStringList();
+
     QString uid;
     if      (loader == "Fabric")   uid = "net.fabricmc.fabric-loader";
     else if (loader == "Forge")    uid = "net.minecraftforge";
     else if (loader == "Quilt")    uid = "org.quiltmc.quilt-loader";
     else if (loader == "NeoForge") uid = "net.neoforged";
-    else return true;
+    else return out; // "Aucun" / inconnu: aucun filtrage
 
     auto idx = APPLICATION ? APPLICATION->metadataIndex() : nullptr;
-    if (!idx) return true;
+    if (!idx) { out["ok"] = false; return out; }
     auto vl = idx->get(uid);
-    if (!vl) return true;
+    if (!vl) { out["ok"] = false; return out; }
 
     if (!vl->isLoaded()) {
         auto task = vl->getLoadTask();
@@ -869,15 +873,32 @@ bool QmlBridge::loaderAvailable(const QString &mcVersion, const QString &loader)
             loop.exec();
         }
     }
-    if (!vl->isLoaded()) return true;
+    if (!vl->isLoaded()) { out["ok"] = false; return out; }
 
+    QStringList supported;
     for (int i = 0; i < vl->count(); ++i) {
         auto cand = vl->at(i);
         if (!cand) continue;
         const QString parent = vl->data(vl->index(i, 0), BaseVersionList::ParentVersionRole).toString();
-        if (parent.isEmpty() || parent == mcVersion) return true;
+        if (parent.isEmpty()) {
+            // No pinned Minecraft version: the loader advertises support for
+            // every version (Fabric/Quilt ship this way).
+            out["all"] = true;
+            return out;
+        }
+        if (!supported.contains(parent)) supported.append(parent);
     }
-    return false;
+    out["all"] = false;
+    out["versions"] = supported;
+    return out;
+}
+
+bool QmlBridge::loaderAvailable(const QString &mcVersion, const QString &loader)
+{
+    QVariantMap filter = loaderVersionFilter(loader);
+    if (!filter.value("ok").toBool()) return true; // inconnu -> ne pas bloquer
+    if (filter.value("all").toBool()) return true;
+    return filter.value("versions").toStringList().contains(mcVersion);
 }
 
 QString QmlBridge::pickImportFile()
