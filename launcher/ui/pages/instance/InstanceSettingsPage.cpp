@@ -156,31 +156,48 @@ void InstanceSettingsPage::applySettings()
     }
 
     // Java Install Settings
+    // This page is applied whenever the instance window closes, even if the user
+    // never touched it. Writing unchanged (stale) values here would silently undo
+    // a Java selection made outside the page, for example the Java runtime the
+    // launcher auto-installs for the Minecraft version being launched. Only write
+    // when the user actually edited the Java section.
     bool javaInstall = ui->javaSettingsGroupBox->isChecked();
-    m_settings->set("OverrideJavaLocation", javaInstall);
-    if (javaInstall)
-    {
-        m_settings->set("JavaPath", ui->javaPathTextBox->text());
-    }
-    else
-    {
-        m_settings->reset("JavaPath");
-    }
-
-    // Java arguments
+    QString javaPath = ui->javaPathTextBox->text();
     bool javaArgs = ui->javaArgumentsGroupBox->isChecked();
-    m_settings->set("OverrideJavaArgs", javaArgs);
-    if(javaArgs)
+    QString jvmArgs = ui->jvmArgsTextBox->toPlainText();
+    bool javaEdited = javaInstall != m_javaLocationLoaded || javaPath != m_javaPathLoaded
+        || javaArgs != m_javaArgsLoaded || jvmArgs != m_jvmArgsLoaded;
+    if (javaEdited)
     {
-        m_settings->set("JvmArgs", ui->jvmArgsTextBox->toPlainText().replace("\n", " "));
-    }
-    else
-    {
-        m_settings->reset("JvmArgs");
-    }
+        m_settings->set("OverrideJavaLocation", javaInstall);
+        if (javaInstall)
+        {
+            m_settings->set("JavaPath", javaPath);
+        }
+        else
+        {
+            m_settings->reset("JavaPath");
+        }
 
-    // old generic 'override both' is removed.
-    m_settings->reset("OverrideJava");
+        // Java arguments
+        m_settings->set("OverrideJavaArgs", javaArgs);
+        if(javaArgs)
+        {
+            m_settings->set("JvmArgs", jvmArgs.replace("\n", " "));
+        }
+        else
+        {
+            m_settings->reset("JvmArgs");
+        }
+
+        // old generic 'override both' is removed.
+        m_settings->reset("OverrideJava");
+
+        m_javaLocationLoaded = javaInstall;
+        m_javaPathLoaded = javaPath;
+        m_javaArgsLoaded = javaArgs;
+        m_jvmArgsLoaded = ui->jvmArgsTextBox->toPlainText();
+    }
 
     // Custom Commands
     bool custcmd = ui->customCommands->checked();
@@ -300,6 +317,13 @@ void InstanceSettingsPage::loadSettings()
 
     ui->javaArgumentsGroupBox->setChecked(overrideArgs);
     ui->jvmArgsTextBox->setPlainText(m_settings->get("JvmArgs").toString());
+
+    // Remember what was loaded so applySettings() can tell user edits apart from
+    // values changed by the launcher after this page was built.
+    m_javaLocationLoaded = overrideLocation;
+    m_javaPathLoaded = ui->javaPathTextBox->text();
+    m_javaArgsLoaded = overrideArgs;
+    m_jvmArgsLoaded = ui->jvmArgsTextBox->toPlainText();
 
     // Custom commands
     ui->customCommands->initialize(

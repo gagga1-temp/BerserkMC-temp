@@ -76,4 +76,9 @@ private:
     BaseInstance *m_instance;
     SettingsObjectPtr m_settings;
     unique_qobject_ptr<JavaCommon::TestCheck> checker;
+
+    bool m_javaLocationLoaded = false;
+    QString m_javaPathLoaded;
+    bool m_javaArgsLoaded = false;
+    QString m_jvmArgsLoaded;
 };
