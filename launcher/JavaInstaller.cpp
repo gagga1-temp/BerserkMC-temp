@@ -178,6 +178,17 @@ void JavaInstaller::install(int majorVersion)
 
     emit started(majorVersion);
 
+    // Managed runtimes live under <root>/java. On a fresh install (or after the
+    // user wiped that folder) it does not exist yet, and the QFile::open() used
+    // for the archive would then fail with a bare "cannot write" — create it up
+    // front.
+    const QString javaRoot = managedJavaFolder();
+    FS::ensureFolderPathExists(javaRoot);
+    if (!QDir(javaRoot).exists()) {
+        failWith(tr("Impossible de créer le dossier %1").arg(javaRoot));
+        return;
+    }
+
     // Reuse an archive downloaded by an interrupted attempt instead of fetching
     // it all over again.
     if (QFile::exists(m_zipPath)) {
