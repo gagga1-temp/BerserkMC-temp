@@ -4,6 +4,7 @@
 #include "Application.h"
 #include "BuildConfig.h"
 #include "minecraft/auth/AccountList.h"
+#include "minecraft/auth/AccountTask.h"
 #include "minecraft/auth/MinecraftAccount.h"
 #include "InstanceList.h"
 #include "BaseInstance.h"
@@ -40,11 +41,14 @@
 #include <QDir>
 #include <QSet>
 #include <QUrl>
+#include <QUrlQuery>
 #include <QCoreApplication>
 #include <QMessageBox>
 #include <QStandardPaths>
 #include <QProcess>
 #include <QTimer>
+#include <QClipboard>
+#include <QGuiApplication>
 
 namespace {
 // BerserkMC: the local library mixes bundled system skins (shipped with the
@@ -519,16 +523,15 @@ void QmlBridge::removeAccount(const QString &internalId)
 
 void QmlBridge::launchInstance(const QString &instanceId, bool offline)
 {
-    Q_UNUSED(offline)
     auto inst = APPLICATION->instances()->getInstanceById(instanceId);
     if (!inst) {
         emit notification("error", tr("Instance introuvable: %1").arg(instanceId));
         return;
     }
-    // BerserkMC offline-only fork: the QML "offline" flag is ignored — the
-    // launcher always launches offline (online is enforced dead in
-    // Application::launch / LaunchController::login).
-    bool ok = APPLICATION->launch(inst, false, nullptr, nullptr, nullptr, QString());
+    // `offline` is only the caller's request: LaunchController::login() has the
+    // final word and always forces an offline session for local offline
+    // accounts, while a Microsoft account honours an online request.
+    bool ok = APPLICATION->launch(inst, !offline, nullptr, nullptr, nullptr, QString());
     if (ok) {
         emit notification("info", tr("Lancement de « %1 »…").arg(inst->name()));
         if (!m_runningInstances.contains(instanceId)) {
@@ -584,6 +587,144 @@ void QmlBridge::renameOfflineAccount(const QString &internalId, const QString &n
 void QmlBridge::showAccountsDialog()
 {
     APPLICATION->ShowAccountsDialog(nullptr);
+}
+
+void QmlBridge::refreshAccount(const QString &internalId)
+{
+    MinecraftAccountPtr acc;
+    int row;
+    if (!APPLICATION->accounts()->getAccountById(internalId, acc, row) || !acc) {
+        emit notification("error", tr("Compte introuvable."));
+        return;
+    }
+    if (acc->isOffline()) {
+        emit notification("info", tr("Un compte hors-ligne n'a aucun jeton à rafraîchir."));
+        return;
+    }
+    if (acc->isActive()) {
+        return;
+    }
+    auto task = acc->refresh();
+    if (!task) {
+        emit notification("error", tr("Impossible de rafraîchir ce compte."));
+        return;
+    }
+    auto *raw = task.get();
+    connect(raw, &Task::succeeded, this, [this]() {
+        emit notification("ok", tr("Compte Microsoft rafraîchi."));
+    });
+    connect(raw, &Task::failed, this, [this](const QString &reason) {
+        emit notification("error", reason.isEmpty() ? tr("Échec du rafraîchissement du compte.") : reason);
+    });
+    task->start();
+}
+
+void QmlBridge::startMicrosoftLogin()
+{
+    if (m_msLoginRunning) {
+        return;
+    }
+    auto account = MinecraftAccount::createBlankMSA();
+    if (!account) {
+        emit microsoftLoginFailed(tr("Impossible de préparer la connexion Microsoft."));
+        return;
+    }
+    auto task = account->loginMSA();
+    if (!task) {
+        emit microsoftLoginFailed(tr("Impossible de démarrer la connexion Microsoft."));
+        return;
+    }
+    m_msLoginAccount = account;
+    m_msLoginTask = task;
+    m_msLoginRunning = true;
+    emit microsoftLoginRunningChanged(true);
+    emit microsoftLoginStatus(tr("Connexion à Microsoft…"));
+
+    auto *raw = task.get();
+    connect(raw, &Task::status, this, [this, raw](const QString &status) {
+        if (m_msLoginTask.get() == raw) emit microsoftLoginStatus(status);
+    });
+    connect(raw, &Task::progress, this, [this, raw](qint64 current, qint64 total) {
+        if (m_msLoginTask.get() == raw) emit microsoftLoginProgress(current, total);
+    });
+    // Device-code step: `uri` is the verification page, `code` the short form
+    // to type by hand. The link gets the code appended (?otc=) so opening it
+    // lands on an already-filled page, like the QR does.
+    connect(raw, &AccountTask::showVerificationUriAndCode, this,
+            [this, raw](const QUrl &uri, const QString &code, int expiresIn) {
+        if (m_msLoginTask.get() != raw) return;
+        QUrl link = uri;
+        QUrlQuery query;
+        query.addQueryItem(QStringLiteral("otc"), code);
+        link.setQuery(query);
+        emit microsoftLoginVerification(link.toString(), code, expiresIn);
+    });
+    connect(raw, &Task::failed, this, [this, raw](const QString &reason) {
+        if (m_msLoginTask.get() != raw) return;
+        const bool wasRunning = m_msLoginRunning;
+        finishMicrosoftLogin();
+        if (wasRunning) emit microsoftLoginFailed(reason);
+    });
+    connect(raw, &Task::succeeded, this, [this, raw]() {
+        if (m_msLoginTask.get() != raw) return;
+        MinecraftAccountPtr signedIn = m_msLoginAccount;
+        const bool wasRunning = m_msLoginRunning;
+        finishMicrosoftLogin();
+        if (!wasRunning || !signedIn) return;
+        auto list = APPLICATION->accounts();
+        list->addAccount(signedIn);
+        if (!list->defaultAccount()) {
+            list->setDefaultAccount(signedIn);
+        }
+        const QString name = signedIn->profileName().isEmpty() ? signedIn->gamerTag()
+                                                               : signedIn->profileName();
+        emit microsoftLoginSucceeded(name);
+        emit notification("ok", tr("Compte Microsoft « %1 » ajouté.").arg(name));
+    });
+    task->start();
+}
+
+void QmlBridge::cancelMicrosoftLogin()
+{
+    if (!m_msLoginRunning) {
+        return;
+    }
+    finishMicrosoftLogin();
+}
+
+void QmlBridge::finishMicrosoftLogin()
+{
+    // The task reads the account's data, so drop the task first. `.reset()`
+    // (not `= nullptr`) so no empty control block is built on the way out.
+    m_msLoginTask.reset();
+    m_msLoginAccount.reset();
+    if (m_msLoginRunning) {
+        m_msLoginRunning = false;
+        emit microsoftLoginRunningChanged(false);
+    }
+}
+
+QString QmlBridge::msaQrImageSource(const QString &text) const
+{
+    // Hex instead of percent-encoding: the payload survives any URL
+    // normalization Qt applies before it reaches the image provider.
+    return QStringLiteral("image://msaqr/") + QString::fromLatin1(text.toUtf8().toHex());
+}
+
+void QmlBridge::openUrl(const QString &url)
+{
+    const QUrl parsed(url);
+    if (!parsed.isValid()) {
+        emit notification("error", tr("Lien invalide."));
+        return;
+    }
+    DesktopServices::openUrl(parsed);
+}
+
+void QmlBridge::copyToClipboard(const QString &text)
+{
+    QGuiApplication::clipboard()->setText(text);
+    emit notification("ok", tr("Lien copié."));
 }
 
 void QmlBridge::showOfflineNameDialog()

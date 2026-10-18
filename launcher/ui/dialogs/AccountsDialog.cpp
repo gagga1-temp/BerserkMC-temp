@@ -390,14 +390,11 @@ void AccountsDialog::updateStates()
     {
         ui->accountPageStack->setCurrentWidget(ui->loginPage);
 
-        // BerserkMC offline-only fork: Microsoft login is disabled — offer
-        // the offline account creation instead.
-        stopLogin();
-        ui->getFreshCodeButton->setVisible(false);
-        ui->progressBar->setVisible(false);
-        ui->label->setText(
-            tr("This launcher only supports offline accounts (no Microsoft login).\n"
-               "Create one with the button below to start playing."));
+        // Setup the login task and start it
+        if(!m_loginAccount)
+        {
+            startLogin();
+        }
         return;
     }
 
@@ -506,15 +503,18 @@ void AccountsDialog::stopLogin()
 
 void AccountsDialog::startLogin()
 {
-    // BerserkMC offline-only fork: Microsoft login is disabled. This keeps the
-    // method as a safe no-op in case anything still references it.
-    ui->getFreshCodeButton->setVisible(false);
+    ui->getFreshCodeButton->setEnabled(false);
     ui->linkButton->setVisible(false);
     ui->copyLinkButton->setVisible(false);
-    ui->progressBar->setVisible(false);
-    ui->label->setText(
-        tr("This launcher only supports offline accounts (no Microsoft login).\n"
-           "Create one with the button below to start playing."));
+    m_loginAccount = MinecraftAccount::createBlankMSA();
+    m_loginTask = m_loginAccount->loginMSA();
+    connect(m_loginTask.get(), &Task::failed, this, &AccountsDialog::onLoginTaskFailed);
+    connect(m_loginTask.get(), &Task::succeeded, this, &AccountsDialog::onLoginTaskSucceeded);
+    connect(m_loginTask.get(), &Task::status, this, &AccountsDialog::onLoginTaskStatus);
+    connect(m_loginTask.get(), &Task::progress, this, &AccountsDialog::onLoginTaskProgress);
+    connect(m_loginTask.get(), &AccountTask::showVerificationUriAndCode, this, &AccountsDialog::showVerificationUriAndCode);
+    connect(m_loginTask.get(), &AccountTask::hideVerificationUriAndCode, this, &AccountsDialog::hideVerificationUriAndCode);
+    m_loginTask->start();
 }
 
 void AccountsDialog::onGetFreshCodeButtonClicked(bool)

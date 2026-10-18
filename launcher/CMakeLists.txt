@@ -12,6 +12,8 @@ set(CORE_SOURCES
     QmlBridge.cpp
     QmlIconProvider.h
     QmlIconProvider.cpp
+    QmlMsaQrProvider.h
+    QmlMsaQrProvider.cpp
     QmlSkinProvider.h
     QmlSkinProvider.cpp
     JavaInstaller.h

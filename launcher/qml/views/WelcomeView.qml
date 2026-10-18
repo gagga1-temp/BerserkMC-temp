@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-// First-launch welcome screen. Offline account creation is the only path
-// (BerserkMC is offline-only — no Microsoft login).
+// First-launch welcome screen. Offline account creation is the only path here;
+// Microsoft accounts are added later from the Comptes page.
 
 import QtQuick 2.15
 import QtQuick.Controls 2.15

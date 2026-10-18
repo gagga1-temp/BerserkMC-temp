@@ -8,27 +8,30 @@ BerserkMC
 BerserkMC is a custom launcher for Minecraft focused on predictability, long
 term stability and simplicity, fork of the MultiMC project.
 
-> **Offline-only fork.** Microsoft ("online") account login is disabled. Every
-> account is a local, offline account identified by a player name only. See
-> [Offline mode](#offline-mode).
+> **Offline profiles + Microsoft accounts.** Profiles are either local offline
+> accounts (player name only) or Microsoft accounts added with the QR /
+> device-code sign-in. See [Accounts](#accounts).
 
 This project is an independent fork. It is **not** affiliated with or endorsed
 by the MultiMC project.
 
-## Offline mode
+## Accounts
 
-BerserkMC is offline-only by design:
+Two kinds of accounts are supported:
 
-- **Singleplayer / LAN / mods** — works.
-- **Servers with `online-mode=false`** — works. The server accepts the offline
-  UUID derived from the player name.
-- **Servers with `online-mode=true`** (most public servers) — **will not work**.
-  The server asks Mojang's session server to verify the join token; an offline
-  account has no token. This is a server-side check and cannot be worked around
-  from the launcher.
+- **Offline profile** — a player name only, no login. Works in singleplayer, on
+  LAN, and on servers with `online-mode=false` (the server accepts the offline
+  UUID derived from the player name). It does **not** work on servers with
+  `online-mode=true` (most public servers): the server asks Mojang's session
+  server to verify the join token, and an offline profile has no token. This is
+  a server-side check and cannot be worked around from the launcher.
+- **Microsoft account** — added from the Comptes page with the QR code /
+  link device-code flow. It launches the game online, so it works on
+  `online-mode=true` servers.
 
-Existing Microsoft accounts found in `accounts.json` are converted to offline
-accounts automatically on startup.
+The shortcut in the profile menu only ever creates offline profiles; Microsoft
+accounts are added from the Comptes page.
+
 ## Building
 
 Build instructions live in [BUILD.md](BUILD.md). BerserkMC targets Qt 5.15 with

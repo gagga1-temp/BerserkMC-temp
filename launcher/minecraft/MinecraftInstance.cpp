@@ -943,9 +943,10 @@ shared_qobject_ptr<LaunchTask> MinecraftInstance::createLaunchTask(AuthSessionPt
     }
 
     // Asset/library downloads should always run: they only hit Mojang's public
-    // CDN/meta endpoints and never need a Microsoft session token. BerserkMC is
-    // offline-only for auth, but downloads must still happen on first launch and
-    // after version changes, or the instance would fail to start.
+    // CDN/meta endpoints and never need a Microsoft session token. Auth can be
+    // offline (local profile) or online (Microsoft account), but downloads must
+    // still happen on first launch and after version changes, or the instance
+    // would fail to start.
     {
         process->appendStep(new Update(pptr, Net::Mode::Online));
     }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-// Accounts view: left list of accounts, right detail panel. BerserkMC is
-// offline-only — every account is a local "offline" account, no Microsoft login.
+// Accounts view: left list of accounts, right detail panel. Two account kinds:
+// local "offline" profiles (just a player name, played with auth disabled) and
+// Microsoft accounts signed in through the device-code popup below.
 
 import QtQuick 2.15
 import QtQuick.Controls 2.15
@@ -66,6 +67,46 @@ Rectangle {
         function onAccountsChanged() { page.rebuildAccountsModel() }
     }
 
+    // ===== Microsoft sign-in state (driven by the bridge, see msLoginPopup) =====
+    property bool   msRunning: false
+    property string msLink: ""
+    property string msCode: ""
+    property string msStatus: ""
+    property string msError: ""
+    property int    msRemaining: 0
+
+    Connections {
+        target: typeof App !== "undefined" ? App : null
+        function onMicrosoftLoginRunningChanged(running) { page.msRunning = running }
+        function onMicrosoftLoginVerification(url, code, expiresIn) {
+            page.msLink = url
+            page.msCode = code
+            page.msRemaining = expiresIn
+            msExpiryTimer.restart()
+        }
+        function onMicrosoftLoginStatus(text) { page.msStatus = text }
+        function onMicrosoftLoginProgress(current, total) { /* not shown: the countdown covers it */ }
+        function onMicrosoftLoginFailed(reason) {
+            msExpiryTimer.stop()
+            page.msError = reason
+            page.msStatus = ""
+        }
+        function onMicrosoftLoginSucceeded(name) {
+            msExpiryTimer.stop()
+            msLoginPopup.close()
+        }
+    }
+
+    Timer {
+        id: msExpiryTimer
+        interval: 1000
+        repeat: true
+        onTriggered: {
+            if (page.msRemaining > 0) page.msRemaining--
+            if (page.msRemaining <= 0) stop()
+        }
+    }
+
     property int selectedIndex: 0
     function current() {
         if (selectedIndex < 0 || selectedIndex >= accounts.count) return null
@@ -101,6 +142,19 @@ Rectangle {
         createSkinPicker.selectedKey = "Steve"
         createSkinPicker.selectedVariant = "classic"
         addOfflinePopup.open()
+    }
+
+    // Opens the Microsoft sign-in popup and kicks off the device-code flow.
+    // Restarting while a flow is already live is a no-op (the bridge keeps the
+    // running one); restarting after a failure begins a fresh attempt.
+    function openMicrosoftLogin() {
+        msLink = ""
+        msCode = ""
+        msError = ""
+        msRemaining = 0
+        msStatus = qsTr("Connexion à Microsoft…")
+        msLoginPopup.open()
+        if (typeof App !== "undefined") App.startMicrosoftLogin()
     }
 
     // ===== Modal popup: rename offline account =====
@@ -310,6 +364,226 @@ Rectangle {
         }
     }
 
+    // ===== Modal popup: Microsoft sign-in (device code + QR) =====
+    Popup {
+        id: msLoginPopup
+        modal: true
+        focus: true
+        anchors.centerIn: Overlay.overlay
+        implicitWidth: 500
+        implicitHeight: 460
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
+        onClosed: {
+            msExpiryTimer.stop()
+            // A finished sign-in already cleared the bridge state, so this is
+            // a no-op then; it only drops an attempt the user walked away from.
+            if (typeof App !== "undefined") App.cancelMicrosoftLogin()
+        }
+
+        background: Rectangle {
+            color: Theme.bgElevated
+            radius: Theme.radiusLg
+            border.color: Theme.borderSubtle
+            border.width: 1
+        }
+        Overlay.modal: Rectangle { color: Qt.rgba(0, 0, 0, 0.45) }
+
+        contentItem: ColumnLayout {
+            spacing: 14
+
+            Column {
+                Layout.fillWidth: true
+                spacing: 4
+                Text {
+                    text: qsTr("Ajouter un compte Microsoft")
+                    color: Theme.textPrimary
+                    font.family: Theme.fontBody
+                    font.pointSize: 14
+                    font.weight: Font.Bold
+                }
+                Text {
+                    width: parent.width
+                    text: qsTr("Scanne le QR code avec ton téléphone (ou ouvre le lien), puis valide le code affiché sur l'écran.")
+                    color: Theme.textDim
+                    font.family: Theme.fontBody
+                    font.pointSize: 10
+                    wrapMode: Text.WordWrap
+                }
+            }
+
+            // Waiting state: Microsoft did not hand us a code yet
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 10
+                visible: page.msLink.length === 0 && page.msError.length === 0
+
+                Item { Layout.preferredHeight: 40 }
+                ProgressBar {
+                    Layout.fillWidth: true
+                    indeterminate: true
+                    visible: page.msRunning
+                }
+                Text {
+                    Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignHCenter
+                    text: page.msStatus
+                    color: Theme.textMuted
+                    font.family: Theme.fontBody
+                    font.pointSize: 10
+                    wrapMode: Text.WordWrap
+                }
+                Item { Layout.preferredHeight: 40 }
+            }
+
+            // Code state: QR on the left, code + link on the right
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 16
+                visible: page.msLink.length > 0
+
+                Rectangle {
+                    implicitWidth: 158
+                    implicitHeight: 158
+                    radius: Theme.radiusMd
+                    color: "white"
+                    border.color: Theme.borderSubtle
+                    border.width: 1
+
+                    // Busy spinner until the QR renders (it is a one-shot image)
+                    BusyIndicator {
+                        anchors.centerIn: parent
+                        running: page.msRunning && qrImage.status !== Image.Ready
+                        visible: running
+                    }
+                    Image {
+                        id: qrImage
+                        anchors.centerIn: parent
+                        width: 142
+                        height: 142
+                        source: (page.msLink.length > 0 && typeof App !== "undefined")
+                            ? App.msaQrImageSource(page.msLink)
+                            : ""
+                        fillMode: Image.PreserveAspectFit
+                        asynchronous: false
+                        visible: status === Image.Ready
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    spacing: 6
+
+                    Text {
+                        text: qsTr("CODE À ENTRER")
+                        color: Theme.textDim
+                        font.family: Theme.fontBody
+                        font.pointSize: 9
+                        font.letterSpacing: 1
+                        font.weight: Font.DemiBold
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: page.msCode
+                        color: Theme.textPrimary
+                        font.family: Theme.fontMono
+                        font.pointSize: 20
+                        font.weight: Font.Bold
+                        elide: Text.ElideRight
+                    }
+                    Text {
+                        text: page.msRemaining > 0
+                            ? qsTr("Expire dans %1 s").arg(page.msRemaining)
+                            : qsTr("Code expiré — demande-en un nouveau")
+                        color: page.msRemaining > 0 ? Theme.textDim : Theme.accentRed
+                        font.family: Theme.fontBody
+                        font.pointSize: 9
+                    }
+
+                    Row {
+                        spacing: 6
+                        IconButton {
+                            dense: true
+                            variant: "filled"
+                            iconName: "link"
+                            text: qsTr("Ouvrir le lien")
+                            onClicked: if (typeof App !== "undefined") App.openUrl(page.msLink)
+                        }
+                        IconButton {
+                            dense: true
+                            variant: "ghost"
+                            iconName: "copy"
+                            text: qsTr("Copier")
+                            onClicked: if (typeof App !== "undefined") App.copyToClipboard(page.msLink)
+                        }
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: page.msLink
+                        color: Theme.textMuted
+                        font.family: Theme.fontMono
+                        font.pointSize: 8
+                        elide: Text.ElideMiddle
+                    }
+                }
+            }
+
+            // Failure
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: msErrorText.implicitHeight + 24
+                radius: Theme.radiusMd
+                color: Qt.rgba(1, 0.3, 0.3, 0.10)
+                border.color: Theme.accentRed
+                border.width: 1
+                visible: page.msError.length > 0
+                Text {
+                    id: msErrorText
+                    anchors.fill: parent
+                    anchors.margins: 12
+                    text: page.msError
+                    color: Theme.accentRed
+                    font.family: Theme.fontBody
+                    font.pointSize: 10
+                    wrapMode: Text.WordWrap
+                }
+            }
+
+            // Live status while waiting for the phone to confirm
+            Text {
+                Layout.fillWidth: true
+                visible: page.msRunning && page.msError.length === 0
+                horizontalAlignment: Text.AlignHCenter
+                text: page.msStatus.length > 0
+                    ? page.msStatus
+                    : qsTr("En attente de validation sur ton appareil…")
+                color: Theme.textMuted
+                font.family: Theme.fontBody
+                font.pointSize: 10
+                wrapMode: Text.WordWrap
+            }
+
+            Item { Layout.fillHeight: true }
+
+            Row {
+                Layout.alignment: Qt.AlignRight
+                spacing: 8
+                IconButton {
+                    variant: "ghost"
+                    text: qsTr("Annuler")
+                    onClicked: msLoginPopup.close()
+                }
+                IconButton {
+                    visible: page.msError.length > 0
+                    variant: "primary"
+                    iconName: "link"
+                    text: qsTr("Réessayer")
+                    onClicked: page.openMicrosoftLogin()
+                }
+            }
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -484,6 +758,13 @@ Rectangle {
                         iconName: "user"
                         text: qsTr("Ajouter compte hors-ligne")
                         onClicked: page.promptOfflineAccount()
+                    }
+                    IconButton {
+                        Layout.fillWidth: true
+                        variant: "filled"
+                        iconName: "link"
+                        text: qsTr("Ajouter un compte Microsoft")
+                        onClicked: page.openMicrosoftLogin()
                     }
                 }
             }
@@ -748,6 +1029,18 @@ Rectangle {
                                     renamePopup.nameField.text = c.name
                                     renamePopup.targetId = c.internalId
                                     renamePopup.open()
+                                }
+                            }
+                            IconButton {
+                                // Microsoft accounts only: re-validate the stored
+                                // tokens on demand (offline accounts have none).
+                                visible: !page.currentIsOffline()
+                                variant: "filled"
+                                text: qsTr("Rafraîchir")
+                                onClicked: {
+                                    var c = page.current()
+                                    if (!c || typeof App === "undefined") return
+                                    App.refreshAccount(c.internalId)
                                 }
                             }
                             IconButton {

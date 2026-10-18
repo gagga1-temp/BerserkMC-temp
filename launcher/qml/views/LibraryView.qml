@@ -334,7 +334,7 @@ Rectangle {
                                         running: typeof App !== "undefined" && App.runningInstances.indexOf(model.id_) >= 0
                                         onClicked: page.selectedIndex = index
                                         onDoubleClicked: {
-                                            if (typeof App !== "undefined") App.launchInstance(model.id_, true)
+                                            if (typeof App !== "undefined") App.launchInstance(model.id_)
                                         }
                                     }
                                 }
@@ -419,7 +419,7 @@ Rectangle {
                 }
                 onPlay: {
                     var id = page.selectedInstanceId()
-                    if (id && typeof App !== "undefined") App.launchInstance(id, true)
+                    if (id && typeof App !== "undefined") App.launchInstance(id)
                 }
                 onOpenMods: {
                     var id = page.selectedInstanceId()

@@ -6,7 +6,7 @@
     <summary>Manage Minecraft instances with ease</summary>
     <description>
         <p>Overview</p>
-        <p>BerserkMC is a free, open source, offline-only launcher for Minecraft, based on the MultiMC project. It allows you to have multiple, cleanly separated instances of Minecraft (each with their own mods, texture packs, saves, etc) and helps you manage them and their associated options with a simple and powerful interface.</p>
+        <p>BerserkMC is a free, open source launcher for Minecraft, based on the MultiMC project. It allows you to have multiple, cleanly separated instances of Minecraft (each with their own mods, texture packs, saves, etc) and helps you manage them and their associated options with a simple and powerful interface.</p>
         <p>BerserkMC does not support Microsoft account login. All accounts are local offline accounts.</p>
         <p>Features</p>
         <ul>

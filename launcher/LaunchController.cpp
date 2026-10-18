@@ -121,14 +121,17 @@ void LaunchController::login() {
     while (tryagain)
     {
         m_session = std::make_shared<AuthSession>();
-        // BerserkMC offline-only fork: never request an online Mojang session.
-        m_userWantsOnline = false;
+        // An online session requires a Microsoft account: local offline accounts
+        // have no Mojang tokens and always play offline, while a Microsoft
+        // account honours the caller's request (the normal Play button asks for
+        // online, an explicit offline launch still gets an offline session).
+        m_userWantsOnline = m_userWantsOnline && !m_accountToUse->isOffline();
         m_session->wants_online = m_userWantsOnline;
         m_accountToUse->fillSession(m_session);
         switch(m_accountToUse->accountState()) {
             case AccountState::Offline: {
-                // BerserkMC forces offline everywhere: every launch is a local
-                // session. Downloads still run (see MinecraftInstance) — this only
+                // No usable tokens right now, so the session cannot go online.
+                // Downloads still run (see MinecraftInstance) — this only
                 // affects auth, not asset/library updates.
                 if(!m_accountToUse->isOffline()) {
                     m_session->wants_online = false;

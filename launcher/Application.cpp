@@ -2,6 +2,7 @@
 #include "BuildConfig.h"
 #include "QmlBridge.h"
 #include "QmlIconProvider.h"
+#include "QmlMsaQrProvider.h"
 #include "QmlSkinProvider.h"
 
 #include <QQmlApplicationEngine>
@@ -1392,9 +1393,9 @@ bool Application::launch(
     }
     else if(instance->canLaunch())
     {
-        // BerserkMC offline-only fork: every launch is forced offline, whatever
-        // the caller requested (QML bridge, ServersPage, WorldListPage, Widgets UI).
-        online = false;
+        // `online` is only a request: LaunchController::login() decides the
+        // real session from the account that ends up being used (Microsoft
+        // account -> online session, local offline account -> offline session).
         auto & extras = m_instanceExtras[instance->id()];
         auto & window = extras.window;
         if(window)
@@ -1594,6 +1595,9 @@ void Application::showQmlMainWindow()
     // Image provider for Minecraft skins / heads:
     //     Image { source: "image://skins/face/<key>/<variant>" }
     m_qmlEngine->addImageProvider(QStringLiteral("skins"), new QmlSkinProvider);
+    // Image provider for the Microsoft sign-in QR code (id = hex payload):
+    //     Image { source: "image://msaqr/<hex>" }
+    m_qmlEngine->addImageProvider(QStringLiteral("msaqr"), new QmlMsaQrProvider);
     m_qmlEngine->rootContext()->setContextProperty("App", m_qmlBridge);
     m_qmlEngine->load(QUrl(QStringLiteral("qrc:/qml/Main.qml")));
 

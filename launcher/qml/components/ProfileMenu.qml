@@ -2,11 +2,11 @@
 // Profile selector: a pill trigger (round avatar + pseudo + status badge +
 // chevron) that opens a dropdown listing every profile. The active profile is
 // marked with a check; clicking a row switches the active profile. A footer
-// row creates a new OFFLINE profile with inline validation.
+// row creates a new profile — OFFLINE only: Microsoft accounts are added from
+// the Comptes page, never from this shortcut.
 //
-// BerserkMC is offline-only, so every profile is OFFLINE today, but the badge
-// is driven by `kind` so an ONLINE profile renders as a solid green pill as
-// soon as one exists.
+// The badge is driven by `kind`, so an ONLINE profile renders as a solid green
+// pill as soon as one exists.
 
 import QtQuick 2.15
 import QtQuick.Controls 2.15
@@ -409,11 +409,12 @@ Item {
                         DashedAddCircle { Layout.alignment: Qt.AlignVCenter }
                         Text {
                             Layout.fillWidth: true
-                            text: qsTr("Créer un profil")
+                            text: qsTr("Créer un profil hors-ligne")
                             color: Theme.textMuted
                             font.family: Theme.fontBody
                             font.pointSize: 11
                             font.weight: Font.DemiBold
+                            elide: Text.ElideRight
                         }
                     }
                     MouseArea {

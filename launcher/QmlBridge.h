@@ -54,6 +54,10 @@ public:
     Q_INVOKABLE QString javaPathFor(int majorVersion);
     Q_INVOKABLE void installJava(int majorVersion);
 
+    // QR image source for the Microsoft sign-in popup:
+    //     Image { source: App.msaQrImageSource("https://microsoft.com/link?otc=…") }
+    Q_INVOKABLE QString msaQrImageSource(const QString &text) const;
+
 public slots:
     // Accounts
     void createOfflineAccount(const QString &playerName,
@@ -62,7 +66,10 @@ public slots:
     void setDefaultAccount(const QString &internalId);
     void removeAccount(const QString &internalId);
     void renameOfflineAccount(const QString &internalId, const QString &newName);
-    void showAccountsDialog();         // opens the cpp AccountsDialog (offline-only, MSA login disabled)
+    void refreshAccount(const QString &internalId);   // re-validates the stored tokens
+    void startMicrosoftLogin();     // device-code sign-in (QR + link), see signals below
+    void cancelMicrosoftLogin();    // stop following the running sign-in
+    void showAccountsDialog();         // opens the cpp AccountsDialog (offline + Microsoft login)
     void showOfflineNameDialog();      // debug: opens the OfflineNameDialog on demand
 
     // Skins (locally-managed library)
@@ -99,6 +106,10 @@ public slots:
     //   "mods:<id>" | "worlds:<id>" | "screenshots:<id>")
     void openFolder(const QString &kind);
 
+    // Generic helpers for the QML popups (Microsoft sign-in).
+    void openUrl(const QString &url);
+    void copyToClipboard(const QString &text);
+
     // Settings get/set (string round-trips through QVariant)
     QVariant getSetting(const QString &key, const QVariant &fallback = QVariant());
     void     setSetting(const QString &key, const QVariant &value);
@@ -125,6 +136,18 @@ signals:
     void versionListChanged();
     void notification(const QString &kind, const QString &message);
 
+    // Microsoft sign-in. All of them only fire while the sign-in started by
+    // startMicrosoftLogin() is the active one (a cancelled/superseded attempt
+    // goes silent).
+    void microsoftLoginRunningChanged(bool running);
+    // `url` already carries the one-time code (?otc=…), `code` is the short
+    // form to type by hand, `expiresIn` its lifetime in seconds.
+    void microsoftLoginVerification(const QString &url, const QString &code, int expiresIn);
+    void microsoftLoginStatus(const QString &status);
+    void microsoftLoginProgress(qint64 current, qint64 total);
+    void microsoftLoginFailed(const QString &reason);
+    void microsoftLoginSucceeded(const QString &playerName);
+
 private slots:
     void onAccountsChanged();
     void onInstancesChanged();
@@ -146,6 +169,15 @@ private:
     bool m_mcVersionsLoaded = false;
     bool m_mcVersionsFailed = false;
     QProcess *m_updateCheck = nullptr;
+
+    // Microsoft sign-in in flight. Both stay null while idle; the task holds a
+    // pointer into the account's data, so they are always dropped together
+    // (task first, then account).
+    shared_qobject_ptr<AccountTask> m_msLoginTask;
+    MinecraftAccountPtr m_msLoginAccount;
+    bool m_msLoginRunning = false;
+
+    void finishMicrosoftLogin();
 
     void rebuildMinecraftVersions();
 
