@@ -82,6 +82,7 @@ public:
     }
 
     std::shared_ptr<TranslationsModel> translations();
+    void retranslateQml();
 
     std::shared_ptr<JavaInstallList> javalist();
 

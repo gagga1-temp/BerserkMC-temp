@@ -1092,55 +1092,13 @@ Application::Application(int &argc, char **argv) : QApplication(argc, argv)
         qDebug() << "<> Application theme set.";
     }
 
-    if(createSetupWizard())
-    {
-        return;
-    }
+    // Quick Setup is now fully handled by the QML WelcomeView (lang -> pseudo/skin -> RAM).
+    // Skip the legacy Qt SetupWizard to avoid conflicting first-launch flows.
     performMainStartupAction();
 }
 
 bool Application::createSetupWizard()
 {
-    bool javaRequired = [&]()
-    {
-        QString currentHostName = QHostInfo::localHostName();
-        QString oldHostName = settings()->get("LastHostname").toString();
-        if (currentHostName != oldHostName)
-        {
-            settings()->set("LastHostname", currentHostName);
-            return true;
-        }
-        QString currentJavaPath = settings()->get("JavaPath").toString();
-        QString actualPath = FS::ResolveExecutable(currentJavaPath);
-        if (actualPath.isNull())
-        {
-            return true;
-        }
-        return false;
-    }();
-    bool languageRequired = [&]()
-    {
-        if (settings()->get("Language").toString().isEmpty())
-            return true;
-        return false;
-    }();
-    bool wizardRequired = javaRequired || languageRequired;
-
-    if(wizardRequired)
-    {
-        m_setupWizard = new SetupWizard(nullptr);
-        if (languageRequired)
-        {
-            m_setupWizard->addPage(new LanguageWizardPage(m_setupWizard));
-        }
-        if (javaRequired)
-        {
-            m_setupWizard->addPage(new JavaWizardPage(m_setupWizard));
-        }
-        connect(m_setupWizard, &QDialog::finished, this, &Application::setupWizardFinished);
-        m_setupWizard->show();
-        return true;
-    }
     return false;
 }
 
@@ -1314,6 +1272,12 @@ void Application::messageReceived(const QByteArray& message)
 std::shared_ptr<TranslationsModel> Application::translations()
 {
     return m_translations;
+}
+
+void Application::retranslateQml()
+{
+    if (m_qmlEngine)
+        m_qmlEngine->retranslate();
 }
 
 std::shared_ptr<JavaInstallList> Application::javalist()

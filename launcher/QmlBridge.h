@@ -23,6 +23,7 @@ class QmlBridge : public QObject
     Q_PROPERTY(QVariantList accounts        READ accounts        NOTIFY accountsChanged)
     Q_PROPERTY(QVariantList instances       READ instances       NOTIFY instancesChanged)
     Q_PROPERTY(bool         hasAccount      READ hasAccount      NOTIFY accountsChanged)
+    Q_PROPERTY(QVariantList availableLanguages READ availableLanguages NOTIFY languagesChanged)
     Q_PROPERTY(QString      defaultPlayer   READ defaultPlayer   NOTIFY accountsChanged)
     Q_PROPERTY(QString      defaultKind     READ defaultKind     NOTIFY accountsChanged)
     Q_PROPERTY(QString      defaultAccountId READ defaultAccountId NOTIFY accountsChanged)
@@ -113,10 +114,13 @@ public slots:
     // Settings get/set (string round-trips through QVariant)
     QVariant getSetting(const QString &key, const QVariant &fallback = QVariant());
     void     setSetting(const QString &key, const QVariant &value);
+    void     setLanguage(const QString &key); // applies + switches translations live
     void     openChangelog();
     void     checkForUpdates();        // manual auto-updater trigger (Updater.exe next to the binary)
     QString  browseForJava();   // opens a native file picker, returns path or ""
     void     detectJava();      // scans the system for Java installs (Adoptium/etc.)
+    Q_INVOKABLE QVariantList availableLanguages(); // [{key, label}] for the welcome language picker
+    Q_INVOKABLE int systemRamMB() const; // available system RAM in MB (for the welcome/settings RAM slider)
     Q_INVOKABLE QString launcherRoot() const; // data folder shown in the settings UI
     Q_INVOKABLE QString launcherVersion() const; // human-readable version shown in the About section
 
@@ -130,6 +134,8 @@ public slots:
 
 signals:
     void accountsChanged();
+    void languagesChanged();
+    void languageApplied();
     void instancesChanged();
     void skinsChanged();
     void runningInstancesChanged();

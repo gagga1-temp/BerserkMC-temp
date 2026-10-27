@@ -18,6 +18,9 @@ Rectangle {
 
     // ===== Bridge-backed settings =====
     property string javaPath: ""
+    property string selectedLang: ""
+    property int _langTick: 0
+    function tr(s) { var _ = _langTick; return qsTr(s) }
     property real   maxRam:   1024
     property bool   detectJava: true
     property bool   animations: true
@@ -50,6 +53,7 @@ Rectangle {
     Component.onCompleted: {
         if (typeof App !== "undefined") {
             page.javaPath           = App.getSetting("JavaPath", "")
+            page.selectedLang       = App.getSetting("Language", "en_US")
             page.maxRam             = parseInt(App.getSetting("MaxMemAlloc", 1024))
             page.closeOnLaunch      = App.getSetting("AutoCloseConsole", false) === true
                                    || App.getSetting("AutoCloseConsole", false) === "true"
@@ -71,6 +75,11 @@ Rectangle {
         }
         page._ready = true
         page.applyAnimationSpeed()
+    }
+
+    Connections {
+        target: (typeof App !== "undefined") ? App : null
+        function onLanguageApplied() { page._langTick = page._langTick + 1 }
     }
 
     // Persist on every change (debounced just by event coalescing).
@@ -107,9 +116,9 @@ Rectangle {
         }
     }
     readonly property var javaMatrix: [
-        { v: 8,  label: qsTr("Java 8"),  hint: qsTr("Minecraft 1.5 – 1.16") },
-        { v: 17, label: qsTr("Java 17"), hint: qsTr("Minecraft 1.17 – 1.20.4") },
-        { v: 21, label: qsTr("Java 21"), hint: qsTr("Minecraft 1.20.5+") }
+        { v: 8,  label: page.tr("Java 8"),  hint: page.tr("Minecraft 1.5 – 1.16") },
+        { v: 17, label: page.tr("Java 17"), hint: page.tr("Minecraft 1.17 – 1.20.4") },
+        { v: 21, label: page.tr("Java 21"), hint: page.tr("Minecraft 1.20.5+") }
     ]
 
     ColumnLayout {
@@ -119,8 +128,8 @@ Rectangle {
         PageHeader {
             Layout.fillWidth: true
             iconName: "gear"
-            title: qsTr("Réglages")
-            subtitle: qsTr("Java, apparence, comportement")
+            title: page.tr("Réglages")
+            subtitle: page.tr("Java, apparence, comportement")
             onBack: page.back()
         }
 
@@ -136,6 +145,60 @@ Rectangle {
                 spacing: 28
 
                 Item { implicitHeight: 4 }
+
+                // ----- LANGUE -----
+                ColumnLayout {
+                    Layout.leftMargin: 36
+                    Layout.rightMargin: 36
+                    Layout.fillWidth: true
+                    spacing: 14
+
+                    Column {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        Row {
+                            spacing: 10
+                            Rectangle { width: 8; height: 8; radius: 4; color: Theme.accentStrong; anchors.verticalCenter: parent.verticalCenter }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: page.tr("LANGUE")
+                                color: Theme.textPrimary
+                                font.family: Theme.fontBody
+                                font.pointSize: 12
+                                font.letterSpacing: 1.2
+                                font.weight: Font.Bold
+                            }
+                        }
+                        Text {
+                            text: page.tr("Langue de l'interface.")
+                            color: Theme.textDim
+                            font.family: Theme.fontBody
+                            font.pointSize: 10
+                        }
+                    }
+
+                    ComboBox {
+                        id: langCombo
+                        Layout.fillWidth: true
+                        model: (typeof App !== "undefined") ? App.availableLanguages : []
+                        textRole: "label"
+                        valueRole: "key"
+                        currentIndex: {
+                            if (typeof App === "undefined") return 0
+                            var langs = App.availableLanguages
+                            for (var i = 0; i < langs.length; i++) {
+                                if (langs[i].key === page.selectedLang) return i
+                            }
+                            return 0
+                        }
+                        onActivated: {
+                            var key = langCombo.currentValue
+                            page.selectedLang = key
+                            if (typeof App !== "undefined") App.setLanguage(key)
+                            page._langTick = page._langTick + 1
+                        }
+                    }
+                }
 
                 // ----- JAVA -----
                 ColumnLayout {
@@ -153,7 +216,7 @@ Rectangle {
                             Rectangle { width: 8; height: 8; radius: 4; color: Theme.accentStrong; anchors.verticalCenter: parent.verticalCenter }
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: qsTr("JAVA")
+                                text: page.tr("JAVA")
                                 color: Theme.textPrimary
                                 font.family: Theme.fontBody
                                 font.pointSize: 12
@@ -162,7 +225,7 @@ Rectangle {
                             }
                         }
                         Text {
-                            text: qsTr("Configure le runtime utilisé pour lancer Minecraft.")
+                            text: page.tr("Configure le runtime utilisé pour lancer Minecraft.")
                             color: Theme.textDim
                             font.family: Theme.fontBody
                             font.pointSize: 10
@@ -176,8 +239,8 @@ Rectangle {
                         Column {
                             Layout.fillWidth: true
                             spacing: 2
-                            Text { text: qsTr("Chemin du JDK"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
-                            Text { text: qsTr("javaw.exe à utiliser pour lancer le jeu"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                            Text { text: page.tr("Chemin du JDK"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                            Text { text: page.tr("javaw.exe à utiliser pour lancer le jeu"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                         }
                         Row {
                             spacing: 6
@@ -220,14 +283,14 @@ Rectangle {
                         Column {
                             Layout.fillWidth: true
                             spacing: 2
-                            Text { text: qsTr("RAM maximale"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
-                            Text { text: qsTr("Mémoire allouée à Minecraft"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                            Text { text: page.tr("RAM maximale"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                            Text { text: page.tr("Mémoire allouée à Minecraft"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                         }
                         Row {
                             spacing: 12
                             Slider {
                                 from: 512
-                                to: 16384
+                                to: Math.max(4096, (typeof App !== "undefined" ? App.systemRamMB() : 16384))
                                 stepSize: 256
                                 value: page.maxRam
                                 onMoved: page.maxRam = value
@@ -275,8 +338,8 @@ Rectangle {
                         Column {
                             Layout.fillWidth: true
                             spacing: 2
-                            Text { text: qsTr("Détecter automatiquement les Java installés"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
-                            Text { text: qsTr("Scan Adoptium / Oracle / Azul sur le système"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                            Text { text: page.tr("Détecter automatiquement les Java installés"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                            Text { text: page.tr("Scan Adoptium / Oracle / Azul sur le système"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                         }
                         Rectangle {
                             implicitWidth: 40; implicitHeight: 22
@@ -308,10 +371,10 @@ Rectangle {
                     Column {
                         Layout.fillWidth: true
                         spacing: 4
-                        Text { text: qsTr("Installation automatique"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                        Text { text: page.tr("Installation automatique"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
                         Text { text: page.launcherRoot.length
-                                ? qsTr("Télécharge et installe Adoptium Temurin dans « java/temurin-<version> » sous %1.").arg(page.launcherRoot)
-                                : qsTr("Télécharge et installe Adoptium Temurin dans le dossier « java » du launcher.")
+                                ? page.tr("Télécharge et installe Adoptium Temurin dans « java/temurin-<version> » sous %1.").arg(page.launcherRoot)
+                                : page.tr("Télécharge et installe Adoptium Temurin dans le dossier « java » du launcher.")
                               color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                     }
                     Column {
@@ -345,7 +408,7 @@ Rectangle {
                                         Text { text: modelData.label; color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
                                         Text {
                                             text: page.isJavaInstalled(modelData.v)
-                                                ? qsTr("Installé · ") + (App.javaPathFor(modelData.v) || "")
+                                                ? page.tr("Installé · ") + (App.javaPathFor(modelData.v) || "")
                                                 : modelData.hint
                                             color: Theme.textDim
                                             font.family: Theme.fontBody
@@ -358,8 +421,8 @@ Rectangle {
                                         variant: page.isJavaInstalled(modelData.v) ? "filled" : "primary"
                                         iconName: "plus"
                                         text: page.isJavaInstalled(modelData.v)
-                                            ? qsTr("Réinstaller")
-                                            : qsTr("Installer")
+                                            ? page.tr("Réinstaller")
+                                            : page.tr("Installer")
                                         onClicked: if (typeof App !== "undefined") App.installJava(modelData.v)
                                     }
                                 }
@@ -383,9 +446,9 @@ Rectangle {
                         Row {
                             spacing: 10
                             Rectangle { width: 8; height: 8; radius: 4; color: Theme.accentStrong; anchors.verticalCenter: parent.verticalCenter }
-                            Text { anchors.verticalCenter: parent.verticalCenter; text: qsTr("APPARENCE"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 12; font.letterSpacing: 1.2; font.weight: Font.Bold }
+                            Text { anchors.verticalCenter: parent.verticalCenter; text: page.tr("APPARENCE"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 12; font.letterSpacing: 1.2; font.weight: Font.Bold }
                         }
-                        Text { text: qsTr("Thème global et accent."); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                        Text { text: page.tr("Thème global et accent."); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                     }
 
                     // Accent swatches
@@ -395,8 +458,8 @@ Rectangle {
                         Column {
                             Layout.fillWidth: true
                             spacing: 2
-                            Text { text: qsTr("Couleur d'accent"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
-                            Text { text: qsTr("Boutons, focus, sélections"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                            Text { text: page.tr("Couleur d'accent"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                            Text { text: page.tr("Boutons, focus, sélections"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                         }
                         Row {
                             spacing: 8
@@ -432,8 +495,8 @@ Rectangle {
                         Column {
                             Layout.fillWidth: true
                             spacing: 2
-                            Text { text: qsTr("Animations"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
-                            Text { text: qsTr("Désactiver pour des machines plus lentes"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                            Text { text: page.tr("Animations"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                            Text { text: page.tr("Désactiver pour des machines plus lentes"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                         }
                         Rectangle {
                             implicitWidth: 40; implicitHeight: 22
@@ -468,9 +531,9 @@ Rectangle {
                         Row {
                             spacing: 10
                             Rectangle { width: 8; height: 8; radius: 4; color: Theme.accentStrong; anchors.verticalCenter: parent.verticalCenter }
-                            Text { anchors.verticalCenter: parent.verticalCenter; text: qsTr("COMPORTEMENT"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 12; font.letterSpacing: 1.2; font.weight: Font.Bold }
+                            Text { anchors.verticalCenter: parent.verticalCenter; text: page.tr("COMPORTEMENT"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 12; font.letterSpacing: 1.2; font.weight: Font.Bold }
                         }
-                        Text { text: qsTr("Lancement et fenêtre du jeu."); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                        Text { text: page.tr("Lancement et fenêtre du jeu."); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                     }
 
                     RowLayout {
@@ -479,8 +542,8 @@ Rectangle {
                         Column {
                             Layout.fillWidth: true
                             spacing: 2
-                            Text { text: qsTr("Fermer le launcher au lancement de Minecraft"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
-                            Text { text: qsTr("Économise la RAM pendant que tu joues"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                            Text { text: page.tr("Fermer le launcher au lancement de Minecraft"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                            Text { text: page.tr("Économise la RAM pendant que tu joues"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                         }
                         Rectangle {
                             implicitWidth: 40; implicitHeight: 22
@@ -505,8 +568,8 @@ Rectangle {
                         Column {
                             Layout.fillWidth: true
                             spacing: 2
-                            Text { text: qsTr("Afficher la console au démarrage"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
-                            Text { text: qsTr("Pour debug les crashes"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                            Text { text: page.tr("Afficher la console au démarrage"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                            Text { text: page.tr("Pour debug les crashes"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                         }
                         Rectangle {
                             implicitWidth: 40; implicitHeight: 22
@@ -532,17 +595,17 @@ Rectangle {
                         Column {
                             Layout.fillWidth: true
                             spacing: 2
-                            Text { text: qsTr("Taille de la fenêtre Minecraft"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
-                            Text { text: qsTr("Définit la résolution de départ du jeu"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                            Text { text: page.tr("Taille de la fenêtre Minecraft"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                            Text { text: page.tr("Définit la résolution de départ du jeu"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                         }
                         ComboBox {
                             id: sizeCombo
                             implicitWidth: 180
                             model: [
-                                qsTr("854 × 480"),
-                                qsTr("1280 × 720"),
-                                qsTr("1920 × 1080"),
-                                qsTr("Plein écran")
+                                page.tr("854 × 480"),
+                                page.tr("1280 × 720"),
+                                page.tr("1920 × 1080"),
+                                page.tr("Plein écran")
                             ]
                             property var presets: [
                                 { w: 854,  h: 480,  max: false },
@@ -603,9 +666,9 @@ Rectangle {
                         Row {
                             spacing: 10
                             Rectangle { width: 8; height: 8; radius: 4; color: Theme.accentStrong; anchors.verticalCenter: parent.verticalCenter }
-                            Text { anchors.verticalCenter: parent.verticalCenter; text: qsTr("DEBUG"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 12; font.letterSpacing: 1.2; font.weight: Font.Bold }
+                            Text { anchors.verticalCenter: parent.verticalCenter; text: page.tr("DEBUG"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 12; font.letterSpacing: 1.2; font.weight: Font.Bold }
                         }
-                        Text { text: qsTr("Options de test — à laisser désactivées en usage normal."); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                        Text { text: page.tr("Options de test — à laisser désactivées en usage normal."); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                     }
 
                     // Show the offline player-name dialog at launch?
@@ -615,12 +678,12 @@ Rectangle {
                         Column {
                             Layout.fillWidth: true
                             spacing: 2
-                            Text { text: qsTr("Afficher la fenêtre du nom de joueur hors ligne"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                            Text { text: page.tr("Afficher la fenêtre du nom de joueur hors ligne"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
                             Text {
                                 Layout.fillWidth: true
                                 width: parent.width
                                 wrapMode: Text.WordWrap
-                                text: qsTr("Si décoché, le lancement hors ligne utilise directement le dernier nom mémorisé.")
+                                text: page.tr("Si décoché, le lancement hors ligne utilise directement le dernier nom mémorisé.")
                                 color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10
                             }
                         }
@@ -648,12 +711,12 @@ Rectangle {
                         Column {
                             Layout.fillWidth: true
                             spacing: 2
-                            Text { text: qsTr("Tester la fenêtre maintenant"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
-                            Text { text: qsTr("Ouvre immédiatement la fenêtre de saisie du nom hors ligne"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                            Text { text: page.tr("Tester la fenêtre maintenant"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                            Text { text: page.tr("Ouvre immédiatement la fenêtre de saisie du nom hors ligne"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                         }
                         IconButton {
                             variant: "filled"
-                            text: qsTr("Ouvrir")
+                            text: page.tr("Ouvrir")
                             onClicked: if (typeof App !== "undefined") App.showOfflineNameDialog()
                         }
                     }
@@ -674,9 +737,9 @@ Rectangle {
                         Row {
                             spacing: 10
                             Rectangle { width: 8; height: 8; radius: 4; color: Theme.accentStrong; anchors.verticalCenter: parent.verticalCenter }
-                            Text { anchors.verticalCenter: parent.verticalCenter; text: qsTr("À PROPOS"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 12; font.letterSpacing: 1.2; font.weight: Font.Bold }
+                            Text { anchors.verticalCenter: parent.verticalCenter; text: page.tr("À PROPOS"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 12; font.letterSpacing: 1.2; font.weight: Font.Bold }
                         }
-                        Text { text: qsTr("Infos build."); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                        Text { text: page.tr("Infos build."); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                     }
 
                     RowLayout {
@@ -685,12 +748,12 @@ Rectangle {
                         Column {
                             Layout.fillWidth: true
                             spacing: 2
-                            Text { text: qsTr("Version"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
-                            Text { text: qsTr("BerserkMC %1").arg(App.launcherVersion()); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                            Text { text: page.tr("Version"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                            Text { text: page.tr("BerserkMC %1").arg(App.launcherVersion()); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                         }
                         IconButton {
                             variant: "filled"
-                            text: qsTr("Voir le changelog")
+                            text: page.tr("Voir le changelog")
                             onClicked: if (typeof App !== "undefined") App.openChangelog()
                         }
                     }
@@ -701,12 +764,12 @@ Rectangle {
                         Column {
                             Layout.fillWidth: true
                             spacing: 2
-                            Text { text: qsTr("Mises à jour"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
-                            Text { text: qsTr("Télécharge et installe la dernière version depuis GitHub"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
+                            Text { text: page.tr("Mises à jour"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                            Text { text: page.tr("Télécharge et installe la dernière version depuis GitHub"); color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                         }
                         IconButton {
                             variant: "filled"
-                            text: qsTr("Vérifier les mises à jour")
+                            text: page.tr("Vérifier les mises à jour")
                             onClicked: if (typeof App !== "undefined") App.checkForUpdates()
                         }
                     }
@@ -717,13 +780,13 @@ Rectangle {
                         Column {
                             Layout.fillWidth: true
                             spacing: 2
-                            Text { text: qsTr("Dossier launcher"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
+                            Text { text: page.tr("Dossier launcher"); color: Theme.textPrimary; font.family: Theme.fontBody; font.pointSize: 11; font.weight: Font.DemiBold }
                             Text { text: page.launcherRoot || "—"; color: Theme.textDim; font.family: Theme.fontBody; font.pointSize: 10 }
                         }
                         IconButton {
                             variant: "filled"
                             iconName: "folder"
-                            text: qsTr("Ouvrir")
+                            text: page.tr("Ouvrir")
                             onClicked: if (typeof App !== "undefined") App.openFolder("launcher")
                         }
                     }

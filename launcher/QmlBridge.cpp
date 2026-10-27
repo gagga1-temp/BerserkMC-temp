@@ -3,6 +3,8 @@
 
 #include "Application.h"
 #include "BuildConfig.h"
+#include <sys.h>
+#include "translations/TranslationsModel.h"
 #include "minecraft/auth/AccountList.h"
 #include "minecraft/auth/AccountTask.h"
 #include "minecraft/auth/MinecraftAccount.h"
@@ -170,6 +172,20 @@ void QmlBridge::connectModels()
         connect(skins.get(), &SkinsModel::listUpdated, this, &QmlBridge::onSkinsChanged);
         connect(skins.get(), &SkinsModel::skinUpdated, this,
                 [this](const QString &) { onSkinsChanged(); });
+    }
+    if (auto tr = APPLICATION ? APPLICATION->translations() : nullptr) {
+        connect(tr.get(), &QAbstractListModel::rowsInserted, this, [this]() {
+            APPLICATION->retranslateQml();
+            emit languageApplied();
+            emit languagesChanged();
+        });
+        connect(tr.get(), &QAbstractListModel::modelReset, this, [this]() {
+            APPLICATION->retranslateQml();
+            emit languageApplied();
+            emit languagesChanged();
+        });
+        connect(tr.get(), &QAbstractListModel::rowsRemoved, this, &QmlBridge::languagesChanged);
+        emit languagesChanged();
     }
     auto i = instanceList();
     if (i) {
@@ -1137,6 +1153,77 @@ QVariant QmlBridge::getSetting(const QString &key, const QVariant &fallback)
 void QmlBridge::setSetting(const QString &key, const QVariant &value)
 {
     APPLICATION->settings()->set(key, value);
+}
+
+void QmlBridge::setLanguage(const QString &key)
+{
+    APPLICATION->settings()->set("Language", key);
+    if (auto tr = APPLICATION->translations()) {
+        tr->selectLanguage(key);
+        tr->updateLanguage(key);
+    }
+    APPLICATION->retranslateQml();
+    emit languageApplied();
+}
+
+int QmlBridge::systemRamMB() const
+{
+    uint64_t bytes = Sys::getSystemRam();
+    uint64_t mb = bytes / Sys::mebibyte;
+    if (mb < 1024) mb = 4096;
+    if (mb > 32768) mb = 32768;
+    return (int)mb;
+}
+
+QVariantList QmlBridge::availableLanguages()
+{
+    QVariantList out;
+    if (auto tr = APPLICATION->translations()) {
+        for (int i = 0; i < tr->rowCount(); i++) {
+            QModelIndex idx = tr->index(i, 0);
+            QString key = tr->data(idx, Qt::UserRole).toString();
+            QString label = tr->data(idx, Qt::DisplayRole).toString();
+            if (key.isEmpty()) continue;
+            if (key == "en_US") label = "American English";
+            QVariantMap m;
+            m["key"] = key;
+            m["label"] = label;
+            out.append(m);
+        }
+    }
+    if (out.isEmpty()) {
+        out.append(QVariantMap{ {"key", "en_US"}, {"label", "American English"} });
+        out.append(QVariantMap{ {"key", "fr_FR"}, {"label", "Français"} });
+    }
+    // Put American English at the very top of the list.
+    for (int i = 1; i < out.size(); i++) {
+        if (out[i].toMap()["key"].toString() == "en_US") {
+            QVariant v = out.takeAt(i);
+            out.prepend(v);
+            break;
+        }
+    }
+    // If en_US wasn't in the list at all, prepend a synthetic entry.
+    if (out.isEmpty() || out[0].toMap()["key"].toString() != "en_US") {
+        // only if not already present anywhere
+        bool present = false;
+        for (const auto &v : out) if (v.toMap()["key"].toString() == "en_US") { present = true; break; }
+        if (!present) out.prepend(QVariantMap{ {"key", "en_US"}, {"label", "American English"} });
+    }
+    // Put French as the second entry (right below American English).
+    for (int i = 2; i < out.size(); i++) {
+        if (out[i].toMap()["key"].toString() == "fr_FR") {
+            QVariant v = out.takeAt(i);
+            out.insert(1, v);
+            break;
+        }
+    }
+    {
+        bool present = false;
+        for (const auto &v : out) if (v.toMap()["key"].toString() == "fr_FR") { present = true; break; }
+        if (!present) out.insert(1, QVariantMap{ {"key", "fr_FR"}, {"label", "Français"} });
+    }
+    return out;
 }
 
 void QmlBridge::openChangelog()

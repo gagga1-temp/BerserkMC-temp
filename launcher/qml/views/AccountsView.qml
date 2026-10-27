@@ -835,22 +835,13 @@ Rectangle {
                         text: qsTr("Ajouter compte hors-ligne")
                         onClicked: page.promptOfflineAccount()
                     }
-                    // Microsoft sign-in is parked until Mojang approves the
-                    // dedicated BerserkMC Azure app ID: starting the flow now
-                    // would only end on Microsoft's consent error page. The
-                    // button stays in place, tells the reason on hover and
-                    // opens the same explanation on click. Wire it back to
-                    // page.openMicrosoftLogin() once the approval lands.
-                    IconButton {
+                                        IconButton {
                         id: msAddButton
                         Layout.fillWidth: true
                         variant: "filled"
                         iconName: "link"
                         text: qsTr("Ajouter un compte Microsoft")
-                        onClicked: msPendingPopup.open()
-                        ToolTip.visible: msAddButton.hovered
-                        ToolTip.delay: 250
-                        ToolTip.text: qsTr("Désolé, en attente de validation par Mojang — la connexion Microsoft arrive bientôt")
+                        onClicked: page.openMicrosoftLogin()
                     }
                 }
             }

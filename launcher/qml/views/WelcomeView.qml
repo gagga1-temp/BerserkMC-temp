@@ -16,20 +16,65 @@ Rectangle {
 
     readonly property string viewTitle: "BIENVENUE"
 
-    signal offlineAccountCreated(string playerName, string skinKey, string skinVariant)
+    signal offlineAccountCreated(string playerName, string skinKey, string skinVariant, string language, int maxRam)
 
-    // Soft accent gradient backdrop (vertical band centered on the logo area)
+    property int step: 0 // 0: language, 1: pseudo+skin, 2: RAM
+    property string selectedLang: ""
+    property bool isRtl: selectedLang.indexOf("ar") === 0 || selectedLang.indexOf("he") === 0 || selectedLang.indexOf("fa") === 0 || selectedLang.indexOf("ur") === 0
+    property int _langTick: 0
+
+    function tr(s) { var _ = _langTick; return qsTr(s) }
+
+    property int maxRam: 4096
+
+
+    Component.onCompleted: {
+        if (typeof App !== "undefined") {
+            var currentLang = App.getSetting("Language", "")
+            if (currentLang && currentLang.length) {
+                selectedLang = currentLang
+            } else {
+                selectedLang = "en_US"
+            }
+            var storedRam = App.getSetting("MaxMemAlloc", 1024)
+            maxRam = (storedRam <= 1024) ? 4096 : storedRam
+            if (maxRam < 512) maxRam = 4096
+            // ensure selectedLang exists in the available list
+            var langs = App.availableLanguages
+            var found = false
+            for (var i = 0; i < langs.length; i++) {
+                if (langs[i].key === selectedLang) { found = true; break }
+            }
+            if (!found && langs.length > 0) selectedLang = langs[0].key
+        }
+    }
+
+    Connections {
+        target: (typeof App !== "undefined") ? App : null
+        function onLanguageApplied() { page._langTick = page._langTick + 1 }
+    }
+
+
+
+    function nextStep() {
+        if (step < 2) step = step + 1
+    }
+
+    function prevStep() {
+        if (step > 0) step = step - 1
+    }
+
+    // Background
     Rectangle {
         anchors.fill: parent
         gradient: Gradient {
             orientation: Gradient.Vertical
-            GradientStop { position: 0.0;  color: Qt.rgba(0,0,0,0) }
+            GradientStop { position: 0.0; color: Qt.rgba(0,0,0,0) }
             GradientStop { position: 0.40; color: Theme.accentGlow2 }
-            GradientStop { position: 1.0;  color: Qt.rgba(0,0,0,0) }
+            GradientStop { position: 1.0; color: Qt.rgba(0,0,0,0) }
         }
     }
 
-    // Wider glow centered roughly behind the logo via QtGraphicalEffects.
     Item {
         id: glowAnchor
         anchors.centerIn: parent
@@ -43,204 +88,278 @@ Rectangle {
             opacity: 0.12
         }
         layer.enabled: true
-        layer.effect: FastBlur {
-            radius: 96
-            transparentBorder: true
-        }
+        layer.effect: FastBlur { radius: 96; transparentBorder: true }
     }
 
-    // Centered content stack
     ColumnLayout {
         anchors.centerIn: parent
         width: 460
         spacing: 14
+        LayoutMirroring.enabled: page.isRtl
+        LayoutMirroring.childrenInherit: true
 
-        // Logo with a wider drop-shadow effect via two stacked images.
         Item {
             Layout.alignment: Qt.AlignHCenter
-            implicitWidth: 128
-            implicitHeight: 128
-
+            implicitWidth: 96
+            implicitHeight: 96
             Image {
                 id: logoBlur
                 anchors.fill: parent
                 source: "qrc:/logo.png"
-                sourceSize.width: 256; sourceSize.height: 256
+                sourceSize.width: 192; sourceSize.height: 192
                 fillMode: Image.PreserveAspectFit
                 opacity: 0.35
                 scale: 1.18
                 smooth: true
                 layer.enabled: true
-                layer.effect: FastBlur { radius: 40 }
+                layer.effect: FastBlur { radius: 32 }
             }
             Image {
                 id: logo
                 anchors.fill: parent
                 source: "qrc:/logo.png"
-                sourceSize.width: 256; sourceSize.height: 256
+                sourceSize.width: 192; sourceSize.height: 192
                 fillMode: Image.PreserveAspectFit
                 smooth: true
-                opacity: 0
-                transform: Translate { id: logoTrans; y: 14 }
-                Component.onCompleted: logoAnim.start()
-                ParallelAnimation {
-                    id: logoAnim
-                    NumberAnimation { target: logo; property: "opacity"; to: 1.0; duration: Theme.durSlow; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: logoTrans; property: "y"; to: 0; duration: Theme.durSlow; easing.type: Easing.OutCubic }
-                }
             }
         }
 
         Text {
-            id: title
             Layout.alignment: Qt.AlignHCenter
-            text: qsTr("Bienvenue dans BerserkMC")
+            text: page.tr("Configuration rapide")
             color: Theme.textPrimary
             font.family: Theme.fontBody
-            font.pointSize: 24
+            font.pointSize: 22
             font.weight: Font.Bold
             font.letterSpacing: -0.3
-            opacity: 0
-            transform: Translate { id: titleTrans; y: 12 }
-            Component.onCompleted: titleAnim.start()
-            ParallelAnimation {
-                id: titleAnim
-                NumberAnimation { target: title; property: "opacity"; to: 1.0; duration: Theme.durSlow; easing.type: Easing.OutCubic }
-                NumberAnimation { target: titleTrans; property: "y"; to: 0; duration: Theme.durSlow; easing.type: Easing.OutCubic }
-                PauseAnimation { duration: 80 }
-            }
         }
 
         Text {
-            id: subtitle
             Layout.alignment: Qt.AlignHCenter
-            Layout.fillWidth: true
-            text: qsTr("Crée un compte hors-ligne pour commencer. Tu pourras lancer Minecraft sans Microsoft et rejoindre les serveurs en online-mode false.")
             color: Theme.textMuted
             font.family: Theme.fontBody
-            font.pointSize: 11
-            wrapMode: Text.WordWrap
-            horizontalAlignment: Text.AlignHCenter
-            opacity: 0
-            Component.onCompleted: subAnim.start()
-            NumberAnimation { id: subAnim; target: subtitle; property: "opacity"; to: 1.0; duration: Theme.durSlow; easing.type: Easing.OutCubic }
-        }
-
-        Item { height: 14; Layout.fillWidth: true }
-
-        Text {
-            text: qsTr("PSEUDO EN JEU")
-            color: Theme.textDim
-            font.family: Theme.fontBody
-            font.pointSize: 9
-            font.letterSpacing: 1
-            font.weight: Font.DemiBold
-        }
-
-        Rectangle {
-            id: nameField
-            Layout.fillWidth: true
-            implicitHeight: 48
-            radius: Theme.radiusMd
-            color: Theme.bgInput
-            border.color: nameInput.activeFocus ? Theme.accentRing : Theme.borderSubtle
-            border.width: 1
-            Behavior on border.color { ColorAnimation { duration: Theme.durFast } }
-
-            TextField {
-                id: nameInput
-                anchors.fill: parent
-                anchors.leftMargin: 16
-                anchors.rightMargin: 16
-                placeholderText: qsTr("Karim_")
-                placeholderTextColor: Theme.textDim
-                color: Theme.textPrimary
-                font.family: Theme.fontBody
-                font.pointSize: 14
-                maximumLength: 16
-                background: null
-                verticalAlignment: TextInput.AlignVCenter
-                validator: RegExpValidator { regExp: /^[a-zA-Z0-9_]{0,16}$/ }
-                onAccepted: createBtn.tryCreate()
-                focus: true
-            }
-        }
-
-        Text {
-            Layout.fillWidth: true
-            text: nameInput.text.length === 0
-                ? qsTr("3 à 16 caractères — lettres, chiffres ou underscore")
-                : (nameInput.text.length < 3
-                    ? qsTr("Encore %1 caractère(s)…").arg(3 - nameInput.text.length)
-                    : qsTr("✓ Nom valide"))
-            color: nameInput.text.length >= 3 ? Theme.accentStrong : Theme.textDim
-            font.family: Theme.fontBody
             font.pointSize: 10
-            Behavior on color { ColorAnimation { duration: Theme.durFast } }
+            text: step === 0 ? page.tr("Étape 1/3 — Langue") : (step === 1 ? page.tr("Étape 2/3 — Pseudo & Skin") : page.tr("Étape 3/3 — Allocation RAM"))
         }
 
-        Item { height: 6; Layout.fillWidth: true }
+        Item { height: 6 }
 
-        // Fresh profiles are offline, so only the bundled system skins are
-        // offered here (imported skins are reserved for online profiles).
-        SkinPicker {
-            id: createSkin
+        // Step 0: Language
+        ColumnLayout {
+            visible: step === 0
             Layout.fillWidth: true
-            showNone: true
-            systemOnly: true
-            selectedKey: "Steve"
-            selectedVariant: "classic"
-        }
-
-        Item { height: 6; Layout.fillWidth: true }
-
-        Rectangle {
-            id: createBtn
-            Layout.fillWidth: true
-            implicitHeight: 48
-            radius: Theme.radiusMd
-            enabled: nameInput.text.length >= 3
-            opacity: enabled ? 1.0 : 0.5
-            color: enabled && createHover.containsMouse ? Theme.accent : Theme.accentSoft
-            border.color: Theme.accentRing
-            border.width: 1
-            Behavior on color   { ColorAnimation { duration: Theme.durFast } }
-            Behavior on opacity { NumberAnimation { duration: Theme.durFast } }
-            scale: createHover.pressed && enabled ? 0.98 : 1.0
-            Behavior on scale   { NumberAnimation { duration: Theme.durFast; easing.type: Easing.OutCubic } }
-
-            function tryCreate() {
-                if (nameInput.text.length >= 3) {
-                    page.offlineAccountCreated(nameInput.text, createSkin.selectedKey, createSkin.selectedVariant)
+            spacing: 10
+            Text {
+                text: page.tr("CHOISIS TA LANGUE")
+                color: Theme.textDim
+                font.family: Theme.fontBody
+                font.pointSize: 9
+                font.letterSpacing: 1
+                font.weight: Font.DemiBold
+            }
+            ListView {
+                id: langList
+                Layout.fillWidth: true
+                implicitHeight: 180
+                model: (typeof App !== "undefined") ? App.availableLanguages : []
+                spacing: 4
+                clip: true
+                flickDeceleration: 8000
+                maximumFlickVelocity: 1500
+                boundsBehavior: Flickable.StopAtBounds
+                delegate: Rectangle {
+                    width: langList.width
+                    height: 36
+                    radius: Theme.radiusMd
+                    color: page.selectedLang === modelData.key ? Theme.accentSoft : (langHover.containsMouse ? Theme.bgElevated : Theme.bgInput)
+                    border.color: page.selectedLang === modelData.key ? "#3fb950" : Theme.borderSubtle
+                    border.width: page.selectedLang === modelData.key ? 2 : 1
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        spacing: 8
+                        Text {
+                            Layout.fillWidth: true
+                            text: modelData.label
+                            color: Theme.textPrimary
+                            font.family: Theme.fontBody
+                            font.pointSize: 11
+                            font.weight: page.selectedLang === modelData.key ? Font.DemiBold : Font.Normal
+                        }
+                        Text {
+                            visible: page.selectedLang === modelData.key
+                            text: "✓"
+                            color: "#3fb950"
+                            font.family: Theme.fontBody
+                            font.pointSize: 12
+                            font.weight: Font.Bold
+                        }
+                    }
+                    MouseArea {
+                        id: langHover
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            page.selectedLang = modelData.key
+                            if (typeof App !== "undefined") App.setLanguage(modelData.key)
+                            page._langTick = page._langTick + 1
+                        }
+                    }
                 }
             }
-
+            Item { height: 4 }
             Row {
-                anchors.centerIn: parent
+                Layout.alignment: Qt.AlignRight
                 spacing: 8
-                Icon {
-                    anchors.verticalCenter: parent.verticalCenter
-                    name: "user"
-                    color: createHover.containsMouse && createBtn.enabled ? "white" : Theme.accentStrong
-                    size: 18
+                IconButton {
+                    variant: "primary"
+                    text: page.tr("Suivant")
+                    onClicked: nextStep()
                 }
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: qsTr("Créer mon compte hors-ligne")
-                    color: createHover.containsMouse && createBtn.enabled ? "white" : Theme.accentStrong
+            }
+        }
+
+        // Step 1: Pseudo + Skin
+        ColumnLayout {
+            visible: step === 1
+            Layout.fillWidth: true
+            spacing: 10
+            Text {
+                text: page.tr("PSEUDO EN JEU")
+                color: Theme.textDim
+                font.family: Theme.fontBody
+                font.pointSize: 9
+                font.letterSpacing: 1
+                font.weight: Font.DemiBold
+            }
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: 44
+                radius: Theme.radiusMd
+                color: Theme.bgInput
+                border.color: nameInput.activeFocus ? Theme.accentRing : Theme.borderSubtle
+                border.width: 1
+                TextField {
+                    id: nameInput
+                    anchors.fill: parent
+                    anchors.leftMargin: 12
+                    anchors.rightMargin: 12
+                    placeholderText: page.tr("Pseudo")
+                    placeholderTextColor: Theme.textDim
+                    color: Theme.textPrimary
                     font.family: Theme.fontBody
                     font.pointSize: 12
-                    font.weight: Font.Bold
-                    Behavior on color { ColorAnimation { duration: Theme.durFast } }
+                    maximumLength: 16
+                    background: null
+                    verticalAlignment: TextInput.AlignVCenter
+                    validator: RegExpValidator { regExp: /^[a-zA-Z0-9_]{0,16}$/ }
+                    focus: true
                 }
             }
+            Text {
+                Layout.fillWidth: true
+                text: nameInput.text.length === 0 ? page.tr("3 à 16 caractères") : (nameInput.text.length < 3 ? page.tr("Encore %1…").arg(3 - nameInput.text.length) : page.tr("✓ OK"))
+                color: nameInput.text.length >= 3 ? Theme.accentStrong : Theme.textDim
+                font.family: Theme.fontBody
+                font.pointSize: 9
+            }
+            SkinPicker {
+                id: createSkin
+                Layout.fillWidth: true
+                showNone: true
+                systemOnly: true
+                selectedKey: "Steve"
+                selectedVariant: "classic"
+            }
+            Row {
+                Layout.alignment: Qt.AlignRight
+                spacing: 8
+                IconButton { variant: "ghost"; text: page.tr("Retour"); onClicked: prevStep() }
+                IconButton { variant: "primary"; text: page.tr("Suivant"); enabled: nameInput.text.length >= 3; onClicked: nextStep() }
+            }
+        }
 
-            MouseArea {
-                id: createHover
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: createBtn.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                onClicked: createBtn.tryCreate()
+        // Step 2: RAM
+        ColumnLayout {
+            visible: step === 2
+            Layout.fillWidth: true
+            spacing: 10
+            Text {
+                text: page.tr("ALLOCATION RAM")
+                color: Theme.textDim
+                font.family: Theme.fontBody
+                font.pointSize: 9
+                font.letterSpacing: 1
+                font.weight: Font.DemiBold
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                Text {
+                    text: page.maxRam + " Mo"
+                    color: Theme.textPrimary
+                    font.family: Theme.fontMono
+                    font.pointSize: 11
+                    font.weight: Font.DemiBold
+                }
+                Item { Layout.fillWidth: true }
+                Text {
+                    text: page.tr("Recommandé : 4096 Mo")
+                    color: Theme.textMuted
+                    font.family: Theme.fontBody
+                    font.pointSize: 9
+                }
+            }
+            Slider {
+                id: ramSlider
+                Layout.fillWidth: true
+                from: 512
+                to: Math.max(4096, (typeof App !== "undefined" ? App.systemRamMB() : 16384))
+                stepSize: 256
+                value: page.maxRam
+                onMoved: page.maxRam = value
+                background: Rectangle {
+                    x: parent.leftPadding
+                    y: parent.topPadding + parent.availableHeight/2 - 2
+                    width: parent.availableWidth
+                    height: 4
+                    radius: 2
+                    color: Theme.bgInput
+                    Rectangle {
+                        width: parent.parent.visualPosition * parent.width
+                        height: parent.height
+                        radius: 2
+                        color: Theme.accentStrong
+                    }
+                }
+                handle: Rectangle {
+                    x: parent.leftPadding + parent.visualPosition * (parent.availableWidth - width)
+                    y: parent.topPadding + parent.availableHeight/2 - height/2
+                    width: 16; height: 16
+                    radius: 8
+                    color: Theme.accentStrong
+                    border.color: Theme.bgBase
+                    border.width: 2
+                }
+            }
+            Text {
+                text: page.tr("Pour la majorité des instances, 4–6 Go suffisent. Plus n'est pas forcément mieux.")
+                color: Theme.textMuted
+                font.family: Theme.fontBody
+                font.pointSize: 9
+                wrapMode: Text.WordWrap
+            }
+            Row {
+                Layout.alignment: Qt.AlignRight
+                spacing: 8
+                IconButton { variant: "ghost"; text: page.tr("Retour"); onClicked: prevStep() }
+                IconButton {
+                    variant: "primary"
+                    text: page.tr("Terminer")
+                    enabled: nameInput.text.length >= 3
+                    onClicked: page.offlineAccountCreated(nameInput.text, createSkin.selectedKey, createSkin.selectedVariant, page.selectedLang, page.maxRam)
+                }
             }
         }
     }

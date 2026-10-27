@@ -112,11 +112,14 @@ ApplicationWindow {
     Component {
         id: welcomeComp
         WelcomeView {
-            onOfflineAccountCreated: function(name, skinKey, skinVariant) {
-                if (typeof App !== "undefined")
+            onOfflineAccountCreated: function(name, skinKey, skinVariant, language, maxRam) {
+                if (typeof App !== "undefined") {
+                    if (language !== undefined && language !== null && language.length)
+                        App.setLanguage(language)
+                    if (maxRam !== undefined && maxRam > 0)
+                        App.setSetting("MaxMemAlloc", maxRam)
                     App.createOfflineAccount(name, skinKey, skinVariant)
-                // StackView swap is driven by App.accountsChanged above so we
-                // don't double-navigate.
+                }
             }
         }
     }
